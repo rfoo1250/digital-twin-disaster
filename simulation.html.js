@@ -411,32 +411,36 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         // === STEP 4: POST BOTH DICTS TO YOUR PYTHON ===
         const payload = {
-            original_dict:      window.original_dict,
+            original_dict: window.original_dict,
             interventions_dict: window.interv_dict,
-            dag_key:            dagKey
-          };
-          console.log('🛰️ About to POST payload:', payload);
-          
-          fetch('http://10.182.75.231:5000/simulate', {
-            method:  'POST',
-            headers: {'Content-Type':'application/json'},
-            body:    JSON.stringify(payload)
-          })
-          // …
-          
-        .then(r => r.json())
-        .then(({ results }) => {
-          document.getElementById('value').textContent    =
-            `Original Prediction: ${results.original_label}`;
-          document.getElementById('resValue').textContent =
-            `Counterfactual Prediction: ${results.counterfactual_label}`;
-        })
-        .catch(err => {
-          console.error(err);
-         alert("Error computing counterfactual. See console for details.");
-        });
-    
-    });
+            dag_key: dagKey
+        };
+        console.log('🛰️ About to POST payload:', payload);
+        // Change port below if needed - norm: 5000
+        fetch('http://127.0.0.1:5000/simulate', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(payload)
+            })
+            // …
+
+            .then(r => r.json())
+            .then(({
+                results
+            }) => {
+                document.getElementById('value').textContent =
+                    `Original Prediction: ${results.original_label}`;
+                document.getElementById('resValue').textContent =
+                    `Counterfactual Prediction: ${results.counterfactual_label}`;
+            })
+            .catch(err => {
+                console.error(err);
+                alert("Error computing counterfactual. See console for details.");
+            });
+            
+    }); //computeBtn.addEventListener('click', () => {
 
 });
 

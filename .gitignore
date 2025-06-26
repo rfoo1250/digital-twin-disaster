@@ -2,7 +2,7 @@ merged_file_unique.csv
 
 .DS_Store
 
-old.*
+old*
 # *.xlsx
 
 # venv

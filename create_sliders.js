@@ -1,9 +1,12 @@
 // File name: / create_sliders.js
 // File description: Generate sliders for the modal
-// CSV Reader Script for Disaster Events Data
-// Focused on News, Reddit, and Transition columns
+//                  reads from data_features.csv as well
+//                  Focused on News, Reddit, and Transition columns
 
-// TODO: communicate with main.js to have read data_features.csv so here dont have to read again
+/*  TODO: 
+ * communicate with main.js to have read data_features.csv so here dont have to read again
+ * 
+ */
 
 // FOo
 

@@ -131,7 +131,11 @@ const pathGen = d3.geoPath().projection(proj);
 
         // Add this part to update the selected county text
         const row = recourseData.find(r => String(r.FIPS).padStart(5,"0") === fips);
-        const countyName = row ? `${row.County_Name || 'Unknown'}, ${row.State || ''}` : `FIPS ${fips}`;
+        console.log(row);
+        
+        // FIXME: county name not exist, bottom line does not work for all counties
+        //const countyName = row ? `${row.County_Name || 'Unknown'}, ${row.State || ''}` : `FIPS ${fips}`;
+        const countyName = `FIPS ${fips}`;
         d3.select("#selected-county-text").text(`Selected: ${countyName}`);
         
         if (has("#bar"))        drawEnrichedInstanceBar(fips);      // Attribution page only
