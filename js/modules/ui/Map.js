@@ -85,7 +85,14 @@ function drawMapDefault() {
         .on("mouseover", (e, d) => {
             const fips = String(d.id).padStart(5, '0');
             const count = countMap.get(fips) || 0;
-            tooltip.style("opacity", 0.9).html(`<strong>FIPS ${fips}</strong><br>${count} record(s)`);
+            
+            // Show, position, and set content all in one step
+            tooltip
+                .style("opacity", 0.9)
+                .html(`<strong>FIPS ${fips}</strong><br>${count} record(s)`)
+                .style("left", (e.pageX + 10) + "px")
+                .style("top",  (e.pageY - 28) + "px");
+
             d3.select(e.currentTarget).attr("stroke", "#000").attr("stroke-width", 2);
         })
         .on("mouseout", (e, d) => {
