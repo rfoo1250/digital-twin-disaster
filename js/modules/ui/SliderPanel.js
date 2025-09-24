@@ -45,7 +45,6 @@ function init() {
             updateAllSlidersForFips(value);
         }
     });
-    console.log('SliderPanel initialized and waiting for state changes.');
 }
 
 /**
@@ -90,7 +89,7 @@ function generateAllSliders() {
                 sliderInput.dataset.column = columnName; // Store original column name
 
                 // Attach the event listener for this specific slider
-                sliderInput.addEventListener('change', handleSliderInput);
+                sliderInput.addEventListener('input', handleSliderInput);
 
                 container.appendChild(sliderClone);
             });
@@ -168,8 +167,6 @@ function calculateAndSetSliderMaximums() {
         console.warn('[SliderPanel] Full dataset not available. Cannot set slider maximums.');
         return;
     }
-
-    console.log(fullDataset);
 
     const padding = 1.1; // Add 10% padding to the max value
 
