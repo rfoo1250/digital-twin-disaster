@@ -54,7 +54,7 @@ function init() {
  */
 function generateAllSliders() {
     const containers = {
-        transitions: document.getElementById('feature_modal_transitions_'),
+        transition: document.getElementById('feature_modal_transitions_'),
         news: document.getElementById('feature_modal_news_'),
         reddit: document.getElementById('feature_modal_reddit_'),
     };
@@ -82,7 +82,7 @@ function generateAllSliders() {
                 const sliderInput = sliderClone.querySelector('.slider');
 
                 // Configure the new slider element from the template
-                const readableName = columnName.replace(/_/g, ' ');
+                const readableName = columnName;
                 labelSpan.textContent = readableName;
                 valueSpan.id = `${columnName}-value`;
 
@@ -90,7 +90,7 @@ function generateAllSliders() {
                 sliderInput.dataset.column = columnName; // Store original column name
 
                 // Attach the event listener for this specific slider
-                sliderInput.addEventListener('input', handleSliderInput);
+                sliderInput.addEventListener('change', handleSliderInput);
 
                 container.appendChild(sliderClone);
             });
@@ -116,12 +116,12 @@ function handleSliderInput(event) {
 
     // Create a new interventions object to avoid direct mutation
     const newInterventions = {
-        ...state.interventions,
+        ...appState.interventions, // FIX: Use appState
         [column]: value,
     };
 
     // Update the central state. This is the only "side effect".
-    updateState('interventions', newInterventions);
+    setState('interventions', newInterventions);
 }
 
 
@@ -138,7 +138,7 @@ function updateAllSlidersForFips(fipsCode) {
     }
 
     // Reset interventions when a new county is selected
-    updateState('interventions', {});
+    setState('interventions', {});
 
     // Iterate over all known columns and update their corresponding sliders
     for (const category in columnDefinitions) {
@@ -169,6 +169,8 @@ function calculateAndSetSliderMaximums() {
         return;
     }
 
+    console.log(fullDataset);
+
     const padding = 1.1; // Add 10% padding to the max value
 
     for (const category in columnDefinitions) {
@@ -185,6 +187,10 @@ function calculateAndSetSliderMaximums() {
                 if (slider) {
                     slider.max = sliderMax;
                 }
+            }
+            else {
+                // ADD THIS ELSE BLOCK TO DEBUG
+                console.warn(`No valid numeric data found for column: '${columnName}'. Max not set.`);
             }
         });
     }
