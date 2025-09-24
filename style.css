@@ -102,6 +102,7 @@ main {
 }
 
 .left-panel {
+  position: relative;
   display: flex;
   flex-direction: column;
 }

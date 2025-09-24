@@ -6,7 +6,7 @@
  * map's legend and display modes (Data Features vs. NRI).
  */
 import { appState, setState } from '../state.js';
-import { getCountyTopoData, getDataFeatures, getNriData } from '../services/DataManager.js';
+import { getCountyTopoData, getDataFeatures, getDataForFips, getNriData } from '../services/DataManager.js';
 
 // Module-level variables
 const tooltip = d3.select("#tip");
@@ -81,6 +81,19 @@ function drawMapDefault() {
         .on("click", (e, d) => {
             const fips = String(d.id).padStart(5, "0");
             setState('selectedFips', fips); // Update central state
+
+            const fipsData = getDataForFips(fips);
+            // set county name and state to top right
+            if (fipsData) {
+                // These properties might not exist, see note below
+                const countyName = fipsData["County_Name"];
+                const stateName = fipsData["State"];
+                d3.select("#county_selected_text").text(`Selected: ${countyName}, ${stateName}`);
+            } else {
+                // Provide a fallback for the user if no data exists
+                d3.select("#selected-county-text").text(`No data available`);
+                console.warn(`No data found for FIPS code: ${fips}`);
+            }
         })
         .on("mouseover", (e, d) => {
             const fips = String(d.id).padStart(5, '0');
