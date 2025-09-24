@@ -46,21 +46,21 @@ const columnDefinitions = {
 async function loadAllData() {
     try {
         const [
-            dataFeatures,
             usTopo,
+            dataFeatures,
             instanceNecessity,
             nriData,
             sourceNecessity,
-            recourseResults,
             groupNecessity,
+            recourseResults,
         ] = await Promise.all([
-            d3.csv("../data_features.csv", d3.autoType),
             d3.json("https://cdn.jsdelivr.net/npm/us-atlas@3/counties-10m.json"),
-            d3.csv("../enriched_instance_necessity_scores.csv", d3.autoType),
-            d3.csv("../nri_county_level.csv", d3.autoType),
-            d3.csv("../enriched_source_necessity_scores.csv", d3.autoType),
-            d3.json("../enriched_your_json_file.json"),
-            d3.csv("../enriched_group_necessity_scores.csv", d3.autoType)
+            d3.csv("../../../data_features.csv", d3.autoType),
+            d3.csv("../../../enriched_instance_necessity_scores.csv", d3.autoType),
+            d3.csv("../../../nri_county_level.csv", d3.autoType),
+            d3.csv("../../../enriched_source_necessity_scores.csv", d3.autoType),
+            d3.csv("../../../enriched_group_necessity_scores.csv", d3.autoType),
+            d3.json("../../../enriched_your_json_file.json")
         ]);
 
         const allData = {

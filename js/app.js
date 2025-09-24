@@ -34,39 +34,41 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Setup the "Compute" button logic
     const computeBtn = document.getElementById('compute_result_button');
-    computeBtn.addEventListener('click', async () => {
-        const dagKey = document.getElementById('dagSelect').value;
+    if (computeBtn) {
+        computeBtn.addEventListener('click', async () => {
+            const dagKey = document.getElementById('dagSelect').value;
 
-        if (!appState.selectedFips) {
-            return alert('Please select a county on the map first.');
-        }
-        if (!dagKey) {
-            return alert('Please choose a causal model (DAG) from the dropdown.');
-        }
-        
-        const payload = {
-            original_dict: appState.originalDataForFips,
-            interventions_dict: appState.interventions,
-            dag_key: dagKey,
-        };
-
-        const response = await runSimulation(payload);
-
-        // Update the UI with the results from the simulation
-        if (response && response.results) {
-            const { original_label, counterfactual_label } = response.results;
-            const originalPredictionEl = document.getElementById('value');
-            const counterfactualPredictionEl = document.getElementById('resValue');
-
-            if (originalPredictionEl) {
-                originalPredictionEl.textContent = `Original Prediction: ${original_label}`;
+            if (!appState.selectedFips) {
+                return alert('Please select a county on the map first.');
             }
-            if (counterfactualPredictionEl) {
-                counterfactualPredictionEl.textContent = `Counterfactual Prediction: ${counterfactual_label}`;
+            if (!dagKey) {
+                return alert('Please choose a causal model (DAG) from the dropdown.');
             }
-        } else {
-            console.error("API response did not contain valid results.", response);
-            alert("Could not retrieve simulation results. See console for details.");
-        }
-    });
+            
+            const payload = {
+                original_dict: appState.originalDataForFips,
+                interventions_dict: appState.interventions,
+                dag_key: dagKey,
+            };
+
+            const response = await runSimulation(payload);
+
+            // Update the UI with the results from the simulation
+            if (response && response.results) {
+                const { original_label, counterfactual_label } = response.results;
+                const originalPredictionEl = document.getElementById('value');
+                const counterfactualPredictionEl = document.getElementById('resValue');
+
+                if (originalPredictionEl) {
+                    originalPredictionEl.textContent = `Original Prediction: ${original_label}`;
+                }
+                if (counterfactualPredictionEl) {
+                    counterfactualPredictionEl.textContent = `Counterfactual Prediction: ${counterfactual_label}`;
+                }
+            } else {
+                console.error("API response did not contain valid results.", response);
+                alert("Could not retrieve simulation results. See console for details.");
+            }
+        });
+    }
 });

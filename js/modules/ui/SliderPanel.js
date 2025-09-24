@@ -16,13 +16,21 @@
 
 // imports
 import { appState, setState } from '../state.js';
-import { loadAllData, getDataForFips, columnDefinitions } from '../services/DataManager.js';
+import { getDataFeatures, getDataForFips, columnDefinitions } from '../services/DataManager.js';
 
 /**
  * Initializes the SliderPanel module.
  * Sets up listeners for central state changes to react accordingly.
  */
 function init() {
+    const sliderTemplate = document.getElementById('slider-template');
+
+    if (!sliderTemplate) {
+        // If it doesn't exist, this page doesn't use the slider panel.
+        // Do nothing and exit the function immediately.
+        return;
+    }
+    
     document.addEventListener('state:changed', (e) => {
         const { key, value } = e.detail;
 
@@ -155,7 +163,7 @@ function updateAllSlidersForFips(fipsCode) {
  * This logic is consolidated from modal_logic.js.
  */
 function calculateAndSetSliderMaximums() {
-    const fullDataset = loadAllData();
+    const fullDataset = getDataFeatures();
     if (!fullDataset || fullDataset.length === 0) {
         console.warn('[SliderPanel] Full dataset not available. Cannot set slider maximums.');
         return;
