@@ -91,14 +91,28 @@ cd Disaster_bench_dashboard
 pip install -r requirements.txt
 ```
 
-### 3. Run the Flask app
+### 3. Run the Flask app as a backend
 
 ```bash
 python generate_counterfactuals.py
 ```
 
-Visit `http://127.0.0.1:5000` in your browser.
+### 4. Host the client
 
+You can either:
+1. Open another terminal and host via Python's HTTP server
+```bash
+cd Disaster_bench_dashboard
+python -m http.server 8000
+```
+
+2. Host via VSCode's Live Server extension
+- Install and activate Live Server by Ritwick Dey.
+- `cd Disaster_bench_dashboard`
+- Follow the instructions by the dev to launch a client session.
+
+Then, go to your localhost's port via a web browser.
+ 
 ---
 
 ## Navigation

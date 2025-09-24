@@ -111,17 +111,17 @@ function handleSliderInput(event) {
     // Update the visual display for this slider
     const valueDisplay = document.getElementById(`${column}-value`);
     if (valueDisplay) {
-        valueDisplay.textContent = value.toFixed(4); // Format for better readability
+        valueDisplay.textContent = value.toFixed(4);
     }
 
     // Create a new interventions object to avoid direct mutation
     const newInterventions = {
-        ...appState.interventions, // FIX: Use appState
+        ...appState.interventions, // Use appState here
         [column]: value,
     };
 
     // Update the central state. This is the only "side effect".
-    setState('interventions', newInterventions);
+    setState('interventions', newInterventions); // Use setState here
 }
 
 
