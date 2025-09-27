@@ -553,7 +553,7 @@ svg [tabindex="0"]:focus{
 
 /* ------- tooltip ------- */
 .tooltip{
-  position:fixed;
+  position:absolute;
   pointer-events:none;
   background: var(--accent);
   color: #fff;
