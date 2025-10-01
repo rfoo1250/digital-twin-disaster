@@ -1,13 +1,18 @@
-merged_file_unique.csv
-
+# OS / Editor junk
 .DS_Store
 
-old*
-# *.xlsx
+# Python virtual environments
+.venv/
+py310_venv/
 
-# venv
-.venv
-py310_venv
+# Data files
+merged_file_unique.csv
+# *.xlsx    # Uncomment if you want to ignore all Excel files
+
+# Scripts (ignored intentionally)
 check_fips.py
 data_cleaning.py
-.DS_Store
+
+# Miscellaneous
+old*
+.resources.md
