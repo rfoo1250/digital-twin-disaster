@@ -88,13 +88,13 @@ cd Disaster_bench_dashboard
 ### 2. Install requirements
 
 ```bash
-pip install -r requirements.txt
+pip install -r py/requirements.txt
 ```
 
 ### 3. Run the Flask app as a backend
 
 ```bash
-python generate_counterfactuals.py
+python py/app.py
 ```
 
 ### 4. Host the client
