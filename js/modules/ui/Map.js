@@ -71,7 +71,9 @@ function drawMapDefault() {
     const data = getDataFeatures();
     const countMap = new Map(d3.rollups(data, vs => vs.length, d => String(d.FIPS).padStart(5, '0')));
 
-    svg.selectAll("path")
+    const g = svg.append("g"); // container for other SVG elements.
+
+    g.selectAll("path")
         .data(getCountyTopoData())
         .join("path")
         .attr("d", pathGen)
@@ -83,16 +85,19 @@ function drawMapDefault() {
             setState('selectedFips', fips); // Update central state
 
             const fipsData = getDataForFips(fips);
+            const container = d3.select("#county-selected-text-container");
+            const textElemt = d3.select("#county_selected_text");
             // set county name and state to top right
             if (fipsData) {
                 // These properties might not exist, see note below
                 const countyName = fipsData["County_Name"];
                 const stateName = fipsData["State"];
-                d3.select("#county_selected_text").text(`Selected: ${countyName}, ${stateName}`);
+                textElemt.text(`Selected: ${countyName}, ${stateName}`);
+                container.style("display", "block");   // show box
             } else {
                 // Provide a fallback for the user if no data exists
-                d3.select("#county_selected_text").text(`No data available`);
-                console.warn(`No data found for FIPS code: ${fips}`);
+                textElemt.text(`No data available`);
+                container.style("display", "block");   // still show box but with message
             }
         })
         .on("mouseover", (e, d) => {
@@ -112,6 +117,22 @@ function drawMapDefault() {
             tooltip.style("opacity", 0);
             d3.select(e.currentTarget).attr("stroke", "#999").attr("stroke-width", 1);
         });
+
+    const zoom = d3.zoom()
+        .scaleExtent([1, 8]) // zoom range
+        .on("zoom", (event) => {
+        g.attr("transform", event.transform);
+        });
+
+    svg.call(zoom);
+
+    d3.select("#zoom_in").on("click", () => {
+        svg.transition().call(zoom.scaleBy, 1.2);
+    });
+
+    d3.select("#zoom_out").on("click", () => {
+        svg.transition().call(zoom.scaleBy, 0.8);
+    });
 }
 
 /**

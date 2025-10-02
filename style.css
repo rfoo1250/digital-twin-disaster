@@ -526,12 +526,23 @@ select {
   background-color: aliceblue;
 }
 
-#county_selected_text {
+#county-selected-text-container {
+  display: none;
   position: absolute;
-  top: 10px;        /* Distance from the top edge */
-  right: 10px;      /* Distance from the right edge */
-  margin: 0;        /* Remove default paragraph margins */
-  z-index: 10;      /* Ensure it appears above the SVG content */
+  top: 10px;       /* Distance from top */
+  right: 10px;     /* Distance from right */
+  background: white;        /* White background */
+  border: 1px solid var(--border); /* Match your theme */
+  border-radius: var(--radius);
+  padding: 6px 10px;
+  box-shadow: var(--shadow); /* subtle shadow like charts */
+  z-index: 9;      /* Keep it above map paths */
+}
+
+#county_selected_text {
+  margin: 0;  /* Remove default paragraph margins */
+  font-size: 0.9rem;
+  color: var(--txt);
 }
 
 /* ------- svg interactions ------- */
@@ -963,5 +974,36 @@ header .controls{
   border:       1px solid #ccc;
 }
 
+/* Zoom control panel */
+.zoom-controls {
+  position: absolute;       /* float above the map */
+  top: 1rem;                /* distance from top */
+  left: 1rem;              /* distance from right */
+  display: flex;
+  flex-direction: column;   /* stack label and buttons */
+  align-items: center;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.5rem;
+  box-shadow: var(--shadow);
+  z-index: 20;              /* above map, below modal */
+}
+
+#zoom-label {
+  margin: 0 0 0.5rem 0;     /* spacing below label */
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--txt);
+}
+
+.zoom-controls button {
+  width: 32px;
+  height: 32px;
+  font-size: 1rem;
+  line-height: 1;
+  margin: 2px 0;
+  padding: 0;               /* tighter square buttons */
+}
 
 

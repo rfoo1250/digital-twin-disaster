@@ -1,7 +1,3 @@
-merged_file_unique.csv
-
-.DS_Store
-
 # Python virtual environments
 .venv/
 py310_venv/
@@ -17,3 +13,6 @@ simulation_results/
 check_fips.py
 data_cleaning.py
 .DS_Store
+
+# Resources, notes, and appendices
+.resources.md
