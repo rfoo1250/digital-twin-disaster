@@ -6,7 +6,7 @@
  * map's legend and display modes (Data Features vs. NRI).
  */
 import { appState, setState } from '../state.js';
-import { getCountyTopoData, getDataFeatures, getDataForFips, getNriData } from '../services/DataManager.js';
+import { getCountyTopoData, getDataFeatures, getDataForFips, getNriData, forestFeature } from '../services/DataManager.js';
 
 // Module-level variables
 const tooltip = d3.select("#tip");
@@ -118,6 +118,27 @@ function drawMapDefault() {
             d3.select(e.currentTarget).attr("stroke", "#999").attr("stroke-width", 1);
         });
 
+    // Trial: wildfire sim 
+    const forestLayer = svg.append("g").attr("class", "forest-layer");
+    
+    const forestCollection = {
+        type: "FeatureCollection",
+        features: [forestFeature]
+    };
+
+    forestLayer.append("path")
+        .datum(forestFeature)   // single feature, no array
+        .attr("d", pathGen)
+        .attr("fill", "darkgreen")
+        .attr("opacity", 0.2)
+        .attr("stroke", "darkgreen");
+
+    console.log("Projected forest point:", proj([-105.82718737, 40.245806079069496]));
+    console.log("Forest path:", d3.geoPath().projection(proj)(forestFeature));
+
+    console.log("Forest bounds:", d3.geoBounds(forestFeature));
+
+    // Zoom functionality
     const zoom = d3.zoom()
         .scaleExtent([1, 8]) // zoom range
         .on("zoom", (event) => {
