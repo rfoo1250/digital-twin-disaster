@@ -146,7 +146,3 @@ Github Link: [https://github.com/sak-18/disaster-assessment-tool](https://github
 
 For questions or feedback, reach out to [svishnu6@asu.edu](mailto:svishnu6@asu.edu) or open an issue in this repo.
 
----
-
-Let me know if you'd like this README saved to a file or updated to reflect specific implementation details from your GitHub repo.
-
