@@ -15,5 +15,6 @@ data_cleaning.py
 .DS_Store
 
 # Miscellaneous
+__pycache__/
 old*
 .resources.md
