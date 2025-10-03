@@ -66,6 +66,7 @@ async function loadAllData() {
         const allData = {
             dataFeatures,
             countiesTopo: topojson.feature(usTopo, usTopo.objects.counties).features,
+            statesTopo: topojson.feature(usTopo, usTopo.objects.states).features,
             instanceNecessity,
             nriData,
             sourceNecessity,
@@ -105,6 +106,10 @@ function getDataForFips(fipsCode) {
 
 function getCountyTopoData() {
     return appState.allData?.countiesTopo || [];
+}
+
+function getStateTopoData() {
+    return appState.allData?.statesTopo || [];
 }
 
 function getDataFeatures() {
@@ -150,6 +155,7 @@ export {
     getDataForFips,
     columnDefinitions,
     getCountyTopoData,
+    getStateTopoData,
     getDataFeatures,
     getNriData,
     getInstanceNecessityData,

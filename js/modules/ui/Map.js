@@ -6,7 +6,7 @@
  * map's legend and display modes (Data Features vs. NRI).
  */
 import { appState, setState } from '../state.js';
-import { getCountyTopoData, getDataFeatures, getDataForFips, getNriData, forestFeature } from '../services/DataManager.js';
+import { getCountyTopoData, getStateTopoData, getDataFeatures, getDataForFips, getNriData, forestFeature } from '../services/DataManager.js';
 
 // Module-level variables
 const tooltip = d3.select("#tip");
@@ -145,6 +145,59 @@ function drawMapDefault() {
     d3.select("#zoom_out").on("click", () => {
         svg.transition().call(zoom.scaleBy, 0.8);
     });
+
+    // focus on state button
+    d3.select("#focus_on_state").on("click", () => {
+        const stateFips = appState.selectedFips.substring(0, 2);  // first 2 digits
+        const states = getStateTopoData();
+        const stateFeature = states.find(s => String(s.id).padStart(2, "0") === stateFips);
+
+        if (stateFeature) {
+            const [[x0, y0], [x1, y1]] = pathGen.bounds(stateFeature);
+            const dx = x1 - x0, dy = y1 - y0;
+            const x = (x0 + x1) / 2, y = (y0 + y1) / 2;
+            const scale = Math.max(1, Math.min(8, 0.9 / Math.max(dx / W, dy / H)));
+            const translate = [W / 2 - scale * x, H / 2 - scale * y];
+
+            svg.transition().duration(750).call(
+                zoom.transform,
+                d3.zoomIdentity.translate(translate[0], translate[1]).scale(scale)
+            );
+
+            // Dim other states
+            g.selectAll("path")
+                .transition().duration(500)
+                .style("opacity", d => String(d.id).substring(0, 2) === stateFips ? 1 : 0.2);
+
+            // Remove old outline if exists
+            g.selectAll(".state-outline").remove();
+
+            // Draw outline INSIDE g so it zooms along with counties
+            g.append("path")
+                .datum(stateFeature)
+                .attr("class", "state-outline")
+                .attr("d", pathGen)
+                .attr("fill", "none")
+                .attr("stroke", "black")
+                .attr("stroke-width", 3)
+                .attr("pointer-events", "none"); // doesn’t block clicks
+        }
+    });
+
+    d3.select("#reset_focus").on("click", () => {
+        svg.transition().duration(750).call(
+            zoom.transform,
+            d3.zoomIdentity
+        );
+        g.selectAll("path")
+            .transition().duration(500)
+            .style("opacity", 1);
+
+        // Remove outline
+        g.selectAll(".state-outline").remove();
+    });
+
+
 }
 
 /**
