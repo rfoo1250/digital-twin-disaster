@@ -7,6 +7,7 @@ DATA_PATH = os.path.join(BASE_DIR, "data_features.csv")
 GROUPINGS_PATH = os.path.join(BASE_DIR, "models", "disaster-assessment-tool", "assets", "groupings", "feature_groupings.csv")
 DAG_PATH = os.path.join(BASE_DIR, "models", "disaster-assessment-tool", "assets", "dags", "dag_structures.json")
 OUTPUT_BASE = os.path.join(BASE_DIR, "models", "disaster-assessment-tool", "assets", "full_features_v6")
+ROOSEVELT_FOREST_COVER_CSV = os.path.join(BASE_DIR, "covtype.csv")
 
 # ------------------ SIMULATION CONFIG ------------------ #
 TARGET_COL = "Property_Damage_GT"

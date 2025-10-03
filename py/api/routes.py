@@ -81,3 +81,6 @@ def register_routes(app):
         except Exception as e:
             logger.error(f"Batch simulation failed: {str(e)}")
             return jsonify({'error': 'Internal server error during batch simulation', 'message': str(e)}), 500
+
+    # wildfire sim in websocket.py
+    

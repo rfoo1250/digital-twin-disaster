@@ -10,12 +10,16 @@ import time
 import re
 import copy
 import os
+import json
+from flask_socketio import emit
 
+from config import ROOSEVELT_FOREST_COVER_CSV
 
 # =========================================================================
 # User-configurable Parameters & Dataset Path
 # =========================================================================
-NODES = 4000 # TODO Number of nodes in the network
+CSV_FILE = ROOSEVELT_FOREST_COVER_CSV # Path to dataset
+NODES = 400 # TODO Number of nodes in the network
 DENSITY_FACTOR = 0.85 # Network dense factor (percentage of the network with trees)
 MAX_WIND_SPEED = 25 # User-defined max wind speed possible
 TIMESTEPS = 100 # Number of steps to run the simulation
@@ -292,14 +296,16 @@ def save_graph(g, node_fn, edge_fn):
 # Main Execution Block
 # =========================================================================
 
-if __name__ == '__main__':
+
+def run_wildfire_simulation_websocket():
+    print("Starting wildfire simulation (WebSocket mode)")
+
     # --- 1. Load Data ---
     try:
         df = pd.read_csv(CSV_FILE)
     except FileNotFoundError:
-        print(f"Error: Dataset file not found at '{CSV_FILE}'.")
-        print("Please update the CSV_FILE variable with the correct path.")
-        exit()
+        emit(json.dumps({"success": False, "error": "Dataset file not found"}))
+        return
 
     # --- 2. Initialize Graph ---
     scale = 100 / NODES
@@ -307,7 +313,7 @@ if __name__ == '__main__':
     dist_scale = 30
     pos_dict = {}
     aspect_dict = {'N': -0.063, 'NE':0.349, 'E':0.686, 'SE':0.557, 'S':0.039, 'SW':-0.155, 'W':-0.252, 'NW':-0.171}
-    
+
     if len(df) < NODES:
         print(f"Warning: NODES ({NODES}) is greater than the number of rows in the CSV ({len(df)}).")
         print("Using all available rows instead.")
@@ -329,7 +335,7 @@ if __name__ == '__main__':
             aspect = df.at[k-1, 'Aspect']
             theta = node_threshold(slope, elevation, ele_min, ele_max, aspect, aspect_dict)
             lf = rnd.randint(3, 7)
-            
+
             current_pos = (i * scale, j * scale)
             if rnd.uniform(0, 1) > DENSITY_FACTOR:
                 g.add_node(k, threshold_switch=1.0, color='black', num_of_active_neighbors=0, fire_state='empty', life=lf, pos=current_pos)
@@ -339,7 +345,7 @@ if __name__ == '__main__':
             pos_dict[k] = current_pos
             k += 1
         if k > NODES: break
-        
+
     edge_list = []
     node_ids = list(g.nodes())
     for i in range(len(node_ids)):
@@ -349,7 +355,7 @@ if __name__ == '__main__':
             p1 = g.nodes[n1]['pos']
             p2 = g.nodes[n2]['pos']
             not_empty = g.nodes[n1]['fire_state'] != 'empty' and g.nodes[n2]['fire_state'] != 'empty'
-            if dist(p1, p2, 1) < proximity and not_empty: # Using scale=1 for grid distance
+            if dist(p1, p2, 1) < proximity and not_empty:
                 edge_list.append((n1, n2))
 
     for n1, n2 in edge_list:
@@ -360,84 +366,59 @@ if __name__ == '__main__':
         lf = np.floor((g.nodes[n1]['life'] + g.nodes[n2]['life']) / 2)
         g.add_edge(n1, n2, w=pp, color='green', life=int(lf), edge_strength=0, wind_speed=0.01, wind_dir=angle, eb=0)
 
-    # --- 3. Prepare for Simulation ---
-    if SAVE_IMAGES and not os.path.exists(SAVE_FOLDER):
-        os.makedirs(SAVE_FOLDER)
-        print(f"Created directory: {SAVE_FOLDER}")
-
-    colors = ['black'] * NODES
-    for node, data in g.nodes(data=True):
-        colors[node-1] = data['color']
-
-    # --- 4. Set Initial Ignition Point ---
+    # --- 3. Set Initial Ignition Point ---
     non_burnt_nodes = [n for n in g.nodes if g.nodes[n]['fire_state'] == 'not_burnt']
     ignition_node = None
 
     if not non_burnt_nodes:
-        print("No nodes available to ignite. Exiting simulation.")
-        exit()
+        emit(json.dumps({"success": False, "error": "No nodes available to ignite"}))
+        return
 
     if IGNITION_POINT == "random":
         ignition_node = rnd.choice(non_burnt_nodes)
-        print(f"Starting fire at random node: {ignition_node}")
     else:
         try:
             node_id = int(IGNITION_POINT)
             if g.has_node(node_id) and g.nodes[node_id]['fire_state'] == 'not_burnt':
                 ignition_node = node_id
-                print(f"Starting fire at specified node: {ignition_node}")
             else:
-                print(f"Warning: Node {node_id} is invalid or not burnable (e.g., empty space).")
                 ignition_node = rnd.choice(non_burnt_nodes)
-                print(f"Falling back to random start node: {ignition_node}")
         except (ValueError, TypeError):
-            print(f"Warning: Invalid IGNITION_POINT '{IGNITION_POINT}'. Value must be 'random' or an integer.")
             ignition_node = rnd.choice(non_burnt_nodes)
-            print(f"Falling back to random start node: {ignition_node}")
 
     if ignition_node:
         g.nodes[ignition_node]['fire_state'] = 'burning'
         g.nodes[ignition_node]['color'] = 'orange'
-        colors[ignition_node - 1] = 'orange'
-    
-    # --- 5. Run Simulation Loop ---
+
+    # --- 4. Run Simulation Loop ---
     prev_burning_forests = 0
     current_burning_forests = 1 if ignition_node else 0
     non_empty_count = count_non_empty(g)
-    
+
     final_timestep = 0
     for i in range(TIMESTEPS + 1):
         final_timestep = i
         if i > 0 and prev_burning_forests >= current_burning_forests:
-            print("Forest fire simulation complete: No new forests are burning.")
             break
 
-        print(f"--- Timestep {i} ---")
-        print(f"Burning: {current_burning_forests} | Burnt: {count_burnt(g)} | Total Affected: {current_burning_forests + count_burnt(g)} / {non_empty_count}")
+        timestep_data = {
+            "timestep": i,
+            "burning": current_burning_forests,
+            "burnt": count_burnt(g),
+            "total": non_empty_count,
+            "nodes": [
+                {"id": n, "state": g.nodes[n]['fire_state'], "color": g.nodes[n]['color']}
+                for n in g.nodes
+            ]
+        }
+        emit(json.dumps(timestep_data))
 
-        node_colors = [g.nodes[n]['color'] for n in sorted(g.nodes())]
-        edge_colors = [g.edges[e].get('color', 'gray') for e in g.edges()]
-        
-        filepath = os.path.join(SAVE_FOLDER, f"timestep_{i:03d}.png") if SAVE_IMAGES else None
-        draw_graph(g, 50, node_colors, edge_colors, pos_dict, 10, filepath=filepath)
+        g, _ = incinerate(g, [g.nodes[n]['color'] for n in sorted(g.nodes())], edge_list)
 
-        g, colors = incinerate(g, colors, edge_list)
-        
-        if i > 0 and i % 3 == 0: 
-            print("Simulating wind...")
+        if i > 0 and i % 3 == 0:
             simulate_wind(g, edge_list, MAX_WIND_SPEED, 0.1, dist_scale)
 
         prev_burning_forests = current_burning_forests
         current_burning_forests = count_burning(g)
-    
-    if final_timestep >= TIMESTEPS:
-         print("Forest fire simulation complete: Reached the maximum iteration number.")
 
-    # --- 6. Save Final State ---
-    print("\n--- Final State ---")
-    node_colors = [g.nodes[n]['color'] for n in sorted(g.nodes())]
-    edge_colors = [g.edges[e].get('color', 'gray') for e in g.edges()]
-    filepath = os.path.join(SAVE_FOLDER, f"final_state_{final_timestep:03d}.png") if SAVE_IMAGES else None
-    draw_graph(g, 50, node_colors, edge_colors, pos_dict, 10, filepath=filepath)
-
-
+    emit(json.dumps({"success": True, "message": "Simulation complete", "final_timestep": final_timestep}))

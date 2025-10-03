@@ -10,6 +10,7 @@ import { runSimulation } from './modules/services/ApiClient.js';
 import SliderPanel from './modules/ui/SliderPanel.js';
 import SnapshotPanel from './modules/ui/SnapshotPanel.js';
 import Map from './modules/ui/Map.js';
+import Wildfire from './modules/ui/Wildfire.js';
 import Charts from './modules/ui/Charts.js';
 import Modal from './modules/ui/Modal.js';
 
@@ -18,6 +19,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Initialize all UI components
     Map.init();
+    Wildfire.init();
     SliderPanel.init();
     SnapshotPanel.init();
     Charts.init();
