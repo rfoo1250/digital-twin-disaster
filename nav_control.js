@@ -3,20 +3,34 @@
 
 // update navigation buttons based on current path
 function updateNavButtons() {
-    const links = document.querySelectorAll('.controls a');
-    const currentPath = window.location.pathname.split('/').pop();
+  const links = document.querySelectorAll('.controls a');
+  const currentPath = window.location.pathname.split('/').pop();
 
-    links.forEach(link => {
+  links.forEach(link => {
     if (link.getAttribute('href') === currentPath) {
-        link.classList.add('active');
-        // link.setAttribute.diss
+      link.classList.add('active');
     } else {
-        link.classList.remove('active');
+      link.classList.remove('active');
     }
-    });
+  });
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-    updateNavButtons();
+  // Fetch nav.html and insert <nav> into <header>
+  fetch("nav.html")
+    .then(res => res.text())
+    .then(html => {
+      const header = document.querySelector("header");
+      if (header) {
+        // Create a temporary container to parse the nav
+        const temp = document.createElement("div");
+        temp.innerHTML = html.trim();
+        const nav = temp.firstElementChild;
 
+        // Insert nav as the FIRST element inside <header>
+        header.insertBefore(nav, header.firstChild);
+
+        updateNavButtons(); // highlight current page
+      }
+    });
 });

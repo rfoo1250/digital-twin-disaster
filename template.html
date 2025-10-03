@@ -1,0 +1,66 @@
+<!-- =================================================================
+template.html: this is just a template that includes the map, nav, content needed
+================================================================== -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!-- =================================================================
+  HEAD: Contains metadata, fonts, stylesheets, and required libraries.
+  ================================================================== -->
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>New Map Page</title>
+
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Main Stylesheet (assumes it's in a parent directory) -->
+  <link rel="stylesheet" href="../style.css"/>
+
+  <!-- D3.js and TopoJSON Libraries (Essential for the map) -->
+  <script src="https://d3js.org/d3.v7.min.js" defer></script>
+  <script src="https://d3js.org/topojson.v3.min.js" defer></script>
+</head>
+<body>
+
+  <!-- =================================================================
+  HEADER: Provides consistent navigation across all pages.
+  ================================================================== -->
+  <header>
+    <!-- Auto loads nav buttons here now -->
+    
+  </header>
+
+  <!-- =================================================================
+  MAIN CONTENT: Holds the primary visualization elements.
+  ================================================================== -->
+  <main id="viz">
+
+    <!-- Map Container: The Map.js module will target this SVG element. -->
+    <div class="left-panel">
+      <svg id="map" class="chart" role="img"></svg>
+      <p id="county_selected_text">Select a county on the map.</p>
+    </div>
+
+    <!-- You can add other panels or content here as needed. -->
+    <!-- For a map-only page, this is all you need inside <main>. -->
+
+  </main>
+
+  <!-- =================================================================
+  SHARED ELEMENTS & SCRIPT: Tooltip and the main application entry point.
+  ================================================================== -->
+  
+  <!-- Tooltip Container: Essential for the map's hover functionality. -->
+  <div id="tip" class="tooltip"></div>
+
+  <!-- 
+    Application Entry Point: 
+    This single script loads your entire refactored application. 
+    The Map.js module will automatically find the #map element and render into it.
+  -->
+  <script type="module" src="../js/app.js" defer></script>
+  <script src="nav_control.js" defer></script>
+
+</body>
+</html>

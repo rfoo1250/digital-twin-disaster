@@ -88,13 +88,13 @@ cd Disaster_bench_dashboard
 ### 2. Install requirements
 
 ```bash
-pip install -r requirements.txt
+pip install -r py/requirements.txt
 ```
 
 ### 3. Run the Flask app as a backend
 
 ```bash
-python generate_counterfactuals.py
+python py/app.py
 ```
 
 ### 4. Host the client
@@ -145,8 +145,4 @@ Github Link: [https://github.com/sak-18/disaster-assessment-tool](https://github
 ## Contact
 
 For questions or feedback, reach out to [svishnu6@asu.edu](mailto:svishnu6@asu.edu) or open an issue in this repo.
-
----
-
-Let me know if you'd like this README saved to a file or updated to reflect specific implementation details from your GitHub repo.
 
