@@ -10,9 +10,10 @@ from config import ROOSEVELT_FOREST_COVER_CSV
 # User-configurable Parameters
 # =========================================================================
 CSV_FILE = ROOSEVELT_FOREST_COVER_CSV
-NODES = 400
-DENSITY_FACTOR = 0.85
+NODES = 20*20
+DENSITY_FACTOR = 0.95
 MAX_WIND_SPEED = 25
+THETA_FACTOR = 0.2
 TIMESTEPS = 100
 IGNITION_POINT = "random"
 
@@ -232,10 +233,11 @@ def run_wildfire_simulation():
             elevation = df.at[k-1, 'Elevation']
             aspect = df.at[k-1, 'Aspect']
             theta = node_threshold(slope, elevation, ele_min, ele_max, aspect, aspect_dict)
+            theta *= THETA_FACTOR
             lf = rnd.randint(3, 7)
             current_pos = (i * scale, j * scale)
             if rnd.uniform(0, 1) > DENSITY_FACTOR:
-                g.add_node(k, threshold_switch=1.0, color='black', num_of_active_neighbors=0, fire_state='empty', life=lf, pos=current_pos)
+                g.add_node(k, threshold_switch=1.0, color='white', num_of_active_neighbors=0, fire_state='empty', life=lf, pos=current_pos)
             else:
                 g.add_node(k, threshold_switch=theta, color='green', num_of_active_neighbors=0, fire_state='not_burnt', life=lf, pos=current_pos)
             pos_dict[k] = current_pos
@@ -304,9 +306,16 @@ def run_wildfire_simulation():
         prev_burning_forests = current_burning_forests
         current_burning_forests = count_burning(g)
 
+    logger.info(" Ending wildfire simulation (HTTP mode)")
+    logger.info(f" Final timestep: {final_timestep}")
+    print("DEBUG Node sample", [
+        (n, g.nodes[n]['fire_state'], node_id_to_grid(n, grid_size))
+        for n in list(g.nodes)[:20]
+    ])
     return {
         "success": True,
         "message": "Simulation complete",
         "final_timestep": final_timestep,
-        "timesteps": simulation_results
+        "timesteps": simulation_results,
+        "grid_size": grid_size
     }

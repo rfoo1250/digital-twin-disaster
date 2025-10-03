@@ -113,7 +113,8 @@ function parseWildfireResponse(response) {
   return {
     success: true,
     finalTimestep: response.final_timestep,
-    timesteps: response.timesteps || []
+    timesteps: response.timesteps || [],
+    gridSize: response.grid_size
   };
 }
 
@@ -156,7 +157,7 @@ function groupNodesByColor(nodes) {
 }
 
 /**
- * Get nodes at a specific timestep, grouped into a grid by row/col.
+ * Get nodes at a specific timestep, grouped into a grid by row/col given from backend.
  * Useful for rendering a 2D grid in the UI.
  * @param {Array} timesteps - Array of timesteps from wildfire response
  * @param {number} step - The timestep number to retrieve
@@ -164,24 +165,22 @@ function groupNodesByColor(nodes) {
  */
 function getWildfireGrid(timesteps, step) {
   const nodes = getNodesAtTimestep(timesteps, step);
-  if (nodes.length === 0) return [];
+  if (!nodes || nodes.length === 0) return [];
 
-  // Find grid size from max row/col
   const maxRow = Math.max(...nodes.map(n => n.row));
   const maxCol = Math.max(...nodes.map(n => n.col));
 
-  // Initialize empty grid
   const grid = Array.from({ length: maxRow + 1 }, () =>
     Array(maxCol + 1).fill(null)
   );
 
-  // Place nodes in grid
   nodes.forEach(n => {
     grid[n.row][n.col] = n;
   });
 
   return grid;
 }
+
 
 /**
  * Count nodes by state at a specific timestep.

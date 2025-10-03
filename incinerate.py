@@ -13,7 +13,7 @@ import os
 # User-configurable Parameters & Dataset Path
 # =========================================================================
 CSV_FILE = "./covtype.csv" # Path to your dataset
-NODES = 400 # Number of nodes in the network
+NODES = 20*20 # Number of nodes in the network
 DENSITY_FACTOR = 0.85 # Network dense factor (percentage of the network with trees)
 MAX_WIND_SPEED = 25 # User-defined max wind speed possible
 TIMESTEPS = 20 # Number of steps to run the simulation
