@@ -7,6 +7,8 @@
  * to consume the data.
  */
 import { appState, setState } from '../state.js';
+import { runWildfireSimulation } from './ApiClient.js';
+
 
 // Column definitions, consolidated from create_sliders.js
 const columnDefinitions = {
@@ -98,6 +100,118 @@ function getDataForFips(fipsCode) {
     return appState.allData.dataFeatures.find(row => parseInt(row.FIPS, 10) === targetFips) || null;
 }
 
+/**
+ * Parses the wildfire simulation response returned from the backend into a normalized structure.
+ * Ensures consistent access to timesteps and overall simulation metadata.
+ * @param {Object} response - Raw wildfire simulation response from API
+ * @returns {Object} Parsed response with timesteps and metadata
+ */
+function parseWildfireResponse(response) {
+  if (!response || !response.success) {
+    return { success: false, timesteps: [], message: response?.error || "Invalid response" };
+  }
+  return {
+    success: true,
+    finalTimestep: response.final_timestep,
+    timesteps: response.timesteps || []
+  };
+}
+
+/**
+ * Retrieves the node states for a given timestep.
+ * @param {Array} timesteps - Array of timesteps from wildfire response
+ * @param {number} step - The timestep number to retrieve
+ * @returns {Array} Array of node objects at the given timestep
+ */
+function getNodesAtTimestep(timesteps, step) {
+  const ts = timesteps.find(t => t.timestep === step);
+  return ts ? ts.nodes : [];
+}
+
+/**
+ * Creates a progression summary (burning vs burnt counts over time).
+ * @param {Array} timesteps - Array of timesteps from wildfire response
+ * @returns {Array} Array of progression objects: [{ timestep, burning, burnt, total }]
+ */
+function getFireProgression(timesteps) {
+  return timesteps.map(ts => ({
+    timestep: ts.timestep,
+    burning: ts.burning,
+    burnt: ts.burnt,
+    total: ts.total
+  }));
+}
+
+/**
+ * Groups nodes by their color (state) for visualization purposes.
+ * @param {Array} nodes - Array of node objects
+ * @returns {Object} Object keyed by color with arrays of nodes as values
+ */
+function groupNodesByColor(nodes) {
+  return nodes.reduce((acc, node) => {
+    if (!acc[node.color]) acc[node.color] = [];
+    acc[node.color].push(node);
+    return acc;
+  }, {});
+}
+
+/**
+ * Get nodes at a specific timestep, grouped into a grid by row/col.
+ * Useful for rendering a 2D grid in the UI.
+ * @param {Array} timesteps - Array of timesteps from wildfire response
+ * @param {number} step - The timestep number to retrieve
+ * @returns {Array<Array>} 2D array grid[row][col] = node
+ */
+function getWildfireGrid(timesteps, step) {
+  const nodes = getNodesAtTimestep(timesteps, step);
+  if (nodes.length === 0) return [];
+
+  // Find grid size from max row/col
+  const maxRow = Math.max(...nodes.map(n => n.row));
+  const maxCol = Math.max(...nodes.map(n => n.col));
+
+  // Initialize empty grid
+  const grid = Array.from({ length: maxRow + 1 }, () =>
+    Array(maxCol + 1).fill(null)
+  );
+
+  // Place nodes in grid
+  nodes.forEach(n => {
+    grid[n.row][n.col] = n;
+  });
+
+  return grid;
+}
+
+/**
+ * Count nodes by state at a specific timestep.
+ * @param {Array} timesteps - Array of timesteps
+ * @param {number} step - The timestep number to summarize
+ * @returns {Object} { burning: X, burnt: Y, not_burnt: Z, empty: W }
+ */
+function countStatesAtTimestep(timesteps, step) {
+  const nodes = getNodesAtTimestep(timesteps, step);
+  return nodes.reduce((acc, node) => {
+    acc[node.state] = (acc[node.state] || 0) + 1;
+    return acc;
+  }, {});
+}
+
+/**
+ * Loads the wildfire simulation results from the backend.
+ * Stores parsed results in application state for later access.
+ */
+async function loadWildfireSimulation() {
+  try {
+    const rawResponse = await runWildfireSimulation();
+    const parsed = parseWildfireResponse(rawResponse);
+    setState('wildfireData', parsed);
+    console.log('[INFO] DataManager: Wildfire simulation loaded.');
+  } catch (error) {
+    console.error('[ERROR] DataManager: Failed to load wildfire simulation.', error);
+  }
+}
+
 
 // --- Specific Data Getter Functions ---
 // These provide a clean API for UI modules to get the data they need
@@ -135,6 +249,17 @@ function getFipsToInstanceMap() {
     return appState.allData?.fipsToInstanceMap || new Map();
 }
 
+function getWildfireData() {
+  return appState.wildfireData || { success: false, timesteps: [] };
+}
+
+function getWildfireNodes(step) {
+  return getNodesAtTimestep(getWildfireData().timesteps, step);
+}
+
+function getWildfireProgression() {
+  return getFireProgression(getWildfireData().timesteps);
+}
 
 // TODO: import the geojson file and extract natioanl forest when it comes to it
 // for now, hardcoding the exact coord format in geojson
@@ -165,5 +290,12 @@ export {
     getSourceNecessityData,
     getRecourseData,
     getFipsToInstanceMap,
+    loadWildfireSimulation,
+    getWildfireData,
+    getWildfireNodes,
+    getWildfireProgression,
+    groupNodesByColor,
+    getWildfireGrid,
+    countStatesAtTimestep,
     forestFeature
 };

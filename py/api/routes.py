@@ -3,6 +3,7 @@ import logging
 import traceback
 
 from simulation.engine import run_scm_counterfactual_simulation
+from wildfire_sim.incinerate import run_wildfire_simulation
 from config import VALID_DAG_KEYS
 
 logger = logging.getLogger(__name__)
@@ -81,3 +82,14 @@ def register_routes(app):
         except Exception as e:
             logger.error(f"Batch simulation failed: {str(e)}")
             return jsonify({'error': 'Internal server error during batch simulation', 'message': str(e)}), 500
+
+    @app.route('/simulate_wildfire', methods=['POST'])
+    def run_wildfire_simulation_route():
+        try:
+            logger.info("Running wildfire simulation")
+            result = run_wildfire_simulation()
+            return jsonify(result)
+        except Exception as e:
+            logger.error(f"Wildfire simulation failed: {str(e)}")
+            logger.error(traceback.format_exc())
+            return jsonify({'error': 'Internal server error during wildfire simulation', 'message': str(e)}), 500
