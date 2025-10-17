@@ -11,6 +11,8 @@ import { getCountyTopoData, getStateTopoData, getDataFeatures, getDataForFips, g
 // Module-level variables
 const tooltip = d3.select("#tip");
 
+var strokeWidth = 1; // base
+
 /**
  * Initializes the Map module.
  */
@@ -79,7 +81,7 @@ function drawMapDefault() {
         .attr("d", pathGen)
         .attr("fill", d => countMap.has(String(d.id).padStart(5, '0')) ? "#3182bd" : "#eee")
         .attr("stroke", "#999")
-        .attr("stroke-width", 1)
+        .attr("stroke-width", strokeWidth)
         .on("click", (e, d) => {
             const fips = String(d.id).padStart(5, "0");
             setState('selectedFips', fips); // Update central state
@@ -111,11 +113,11 @@ function drawMapDefault() {
                 .style("left", (e.pageX + 10) + "px")
                 .style("top",  (e.pageY - 28) + "px");
 
-            d3.select(e.currentTarget).attr("stroke", "#000").attr("stroke-width", 2);
+            d3.select(e.currentTarget).attr("stroke", "#000").attr("stroke-width", strokeWidth * 2);
         })
         .on("mouseout", (e, d) => {
             tooltip.style("opacity", 0);
-            d3.select(e.currentTarget).attr("stroke", "#999").attr("stroke-width", 1);
+            d3.select(e.currentTarget).attr("stroke", "#999").attr("stroke-width", strokeWidth);
         });
 
     // Trial: wildfire sim
@@ -164,6 +166,10 @@ function drawMapDefault() {
                 d3.zoomIdentity.translate(translate[0], translate[1]).scale(scale)
             );
 
+            // change the stroke width smaller for easier view
+            strokeWidth = 0.5;
+            g.selectAll("path").attr("stroke-width", strokeWidth);
+
             // Dim other states
             g.selectAll("path")
                 .transition().duration(500)
@@ -179,7 +185,7 @@ function drawMapDefault() {
                 .attr("d", pathGen)
                 .attr("fill", "none")
                 .attr("stroke", "black")
-                .attr("stroke-width", 3)
+                .attr("stroke-width", strokeWidth * 3)
                 .attr("pointer-events", "none"); // doesn’t block clicks
         }
     });
@@ -189,6 +195,10 @@ function drawMapDefault() {
             zoom.transform,
             d3.zoomIdentity
         );
+
+        strokeWidth = 1;
+        g.selectAll("path").attr("stroke-width", strokeWidth);
+
         g.selectAll("path")
             .transition().duration(500)
             .style("opacity", 1);
