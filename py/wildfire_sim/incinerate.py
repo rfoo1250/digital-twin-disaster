@@ -15,7 +15,7 @@ import os
 # =========================================================================
 # User-configurable Parameters & Dataset Path
 # =========================================================================
-NODES = 4000 # TODO Number of nodes in the network
+NODES = 20*20 # TODO Number of nodes in the network
 DENSITY_FACTOR = 0.85 # Network dense factor (percentage of the network with trees)
 MAX_WIND_SPEED = 25 # User-defined max wind speed possible
 TIMESTEPS = 100 # Number of steps to run the simulation
