@@ -10,7 +10,7 @@ from config import ROOSEVELT_FOREST_COVER_CSV
 # User-configurable Parameters
 # =========================================================================
 CSV_FILE = ROOSEVELT_FOREST_COVER_CSV
-NODES = 20*20
+NODES = 100*100
 DENSITY_FACTOR = 0.95
 MAX_WIND_SPEED = 25
 THETA_FACTOR = 0.2
@@ -208,6 +208,7 @@ def run_wildfire_simulation():
     scale = 100 / NODES
     proximity = 1.42 * scale
     dist_scale = 30
+    pos_dict = {}
     aspect_dict = {'N': -0.063, 'NE':0.349, 'E':0.686, 'SE':0.557, 'S':0.039, 'SW':-0.155, 'W':-0.252, 'NW':-0.171}
 
     if len(df) < NODES:
@@ -220,26 +221,36 @@ def run_wildfire_simulation():
     ele_min = ele_series.min()
 
     g = nx.Graph()
+    empty_list = []
     k = 1
-    grid_size = int(np.sqrt(nodes_count))
-    pos_dict = {}
-    for i in range(1, grid_size + 2):
-        for j in range(1, grid_size + 2):
-            if k > nodes_count: break
-            slope = df.at[k-1, 'Slope']
-            elevation = df.at[k-1, 'Elevation']
-            aspect = df.at[k-1, 'Aspect']
+    grid_size = int(np.ceil(np.sqrt(NODES)))
+    # grid_size_y = int(np.ceil(NODES / grid_size_x))
+
+    for i in range(1, grid_size + 1):
+        for j in range(1, grid_size + 1):
+            if k > NODES:
+                break
+
+            slope = df.at[k - 1, 'Slope']
+            elevation = df.at[k - 1, 'Elevation']
+            aspect = df.at[k - 1, 'Aspect']
             theta = node_threshold(slope, elevation, ele_min, ele_max, aspect, aspect_dict)
-            theta *= THETA_FACTOR
             lf = rnd.randint(3, 7)
+
             current_pos = (i * scale, j * scale)
+
             if rnd.uniform(0, 1) > DENSITY_FACTOR:
-                g.add_node(k, threshold_switch=1.0, color='white', num_of_active_neighbors=0, fire_state='empty', life=lf, pos=current_pos)
+                g.add_node(k, threshold_switch=1.0, color='black', num_of_active_neighbors=0,
+                           fire_state='empty', life=lf, pos=current_pos)
+                empty_list.append(k)
             else:
-                g.add_node(k, threshold_switch=theta, color='green', num_of_active_neighbors=0, fire_state='not_burnt', life=lf, pos=current_pos)
+                g.add_node(k, threshold_switch=theta, color='green', num_of_active_neighbors=0,
+                           fire_state='not_burnt', life=lf, pos=current_pos)
+
             pos_dict[k] = current_pos
             k += 1
-        if k > nodes_count: break
+        if k > NODES:
+            break
 
     edge_list = []
     node_ids = list(g.nodes())

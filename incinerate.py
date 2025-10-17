@@ -342,25 +342,34 @@ if __name__ == '__main__':
     g = nx.Graph()
     empty_list = []
     k = 1
-    grid_size = int(np.sqrt(NODES))
-    for i in range(1, grid_size + 2):
-        for j in range(1, grid_size + 2):
-            if k > NODES: break
-            slope = df.at[k-1, 'Slope']
-            elevation = df.at[k-1, 'Elevation']
-            aspect = df.at[k-1, 'Aspect']
+    grid_size_x = int(np.ceil(np.sqrt(NODES)))
+    grid_size_y = int(np.ceil(NODES / grid_size_x))
+
+    for i in range(1, grid_size_x + 1):
+        for j in range(1, grid_size_y + 1):
+            if k > NODES:
+                break
+
+            slope = df.at[k - 1, 'Slope']
+            elevation = df.at[k - 1, 'Elevation']
+            aspect = df.at[k - 1, 'Aspect']
             theta = node_threshold(slope, elevation, ele_min, ele_max, aspect, aspect_dict)
             lf = rnd.randint(3, 7)
-            
+
             current_pos = (i * scale, j * scale)
+
             if rnd.uniform(0, 1) > DENSITY_FACTOR:
-                g.add_node(k, threshold_switch=1.0, color='black', num_of_active_neighbors=0, fire_state='empty', life=lf, pos=current_pos)
+                g.add_node(k, threshold_switch=1.0, color='black', num_of_active_neighbors=0,
+                           fire_state='empty', life=lf, pos=current_pos)
                 empty_list.append(k)
             else:
-                g.add_node(k, threshold_switch=theta, color='green', num_of_active_neighbors=0, fire_state='not_burnt', life=lf, pos=current_pos)
+                g.add_node(k, threshold_switch=theta, color='green', num_of_active_neighbors=0,
+                           fire_state='not_burnt', life=lf, pos=current_pos)
+
             pos_dict[k] = current_pos
             k += 1
-        if k > NODES: break
+        if k > NODES:
+            break
         
     edge_list = []
     node_ids = list(g.nodes())
