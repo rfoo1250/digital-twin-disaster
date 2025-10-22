@@ -8,7 +8,7 @@
  */
 import { appState, setState } from '../state.js';
 import { runWildfireSimulation } from './ApiClient.js';
-import { forestFeature } from './data copy.js';
+import { forestFeature } from './data.js';
 
 
 /**

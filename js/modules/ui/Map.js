@@ -74,7 +74,8 @@ function drawMapDefault() {
     const countMap = new Map(d3.rollups(data, vs => vs.length, d => String(d.FIPS).padStart(5, '0')));
 
     // main container for zoomable layers
-    const container = svg.append("g").attr("class", "map-container");
+    const container = svg.append("g")
+        .attr("class", "map-container");
 
     // Default (county) layer
     const g = container.append("g").attr("class", "default-layer");
@@ -125,20 +126,21 @@ function drawMapDefault() {
         });
 
     // Trial: wildfire sim 
-    const forestLayer = container.append("g").attr("class", "forest-layer");
+    const forestLayer = container.append("g")
+        .attr("class", "forest-layer")
+        .style("pointer-events", "none");
 
     // draw your new Arapaho & Roosevelt NF polygon
     forestLayer.append("path")
         .datum(getForestFeature()) // get from DataManager / state
         .attr("d", pathGen)
         .attr("fill", "darkgreen")
-        .attr("opacity", 0.3)
+        .attr("opacity", 0.8)
         .attr("stroke", "black")
-        .attr("stroke-width", 1.5);
-
-    // console.log("Forest path:", d3.geoPath().projection(proj)(getForestFeature()));
-    // console.log("Forest bounds:", d3.geoBounds(getForestFeature()));
-    // console.log("County bounds:", d3.geoBounds({type: "FeatureCollection", features: getCountyTopoData()}));
+        .attr("stroke-width", 0.5);
+        // .on("mouseover", (e,d) => {
+        //     d3.select(e.currentTarget).attr("opacity", 0.1);
+        // });
 
     // Zoom functionality
     const zoom = d3.zoom()
