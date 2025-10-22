@@ -1,17 +1,27 @@
 // js/modules/ui/Wildfire.js
-import { loadWildfireSimulation, getWildfireData } from '../services/DataManager.js';
+// THIS CODE IS NOT TESTED, run sim!
+import * as d3 from "d3";
+import { loadWildfireSimulation, getWildfireData, getForestFeature } from "../services/DataManager.js";
 
 async function startSimulation(canvas) {
     const ctx = canvas.getContext('2d');
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+    // Load wildfire sim data
     await loadWildfireSimulation();
-
     const wildfire = getWildfireData();
     const timesteps = wildfire.timesteps;
     const gridSize = wildfire.gridSize;
-
     const cellSize = Math.min(canvas.width / gridSize, canvas.height / gridSize);
+    const forestFeature = getForestFeature();
+    let forestClip = null;
+    if (forestFeature) {
+        const projection = d3.geoAlbersUsa()
+            .fitSize([canvas.width, canvas.height], forestFeature);
+        const pathGen = d3.geoPath().projection(projection);
+        const pathString = pathGen(forestFeature);
+        forestClip = new Path2D(pathString);
+    }
 
     let stepIndex = 0;
     const finalStepIndex = timesteps.length - 1;
@@ -22,33 +32,33 @@ async function startSimulation(canvas) {
         const ts = timesteps[stepIndex];
 
         ts.nodes.forEach(node => {
-            // To mimic matplotlib: top row (row=0) appears at top of canvas.
-            // Invert the Y-axis mapping for drawing.
             const x = node.col * cellSize;
-            const y = (gridSize - 1 - node.row) * cellSize; // invert Y-axis
+            const y = (gridSize - 1 - node.row) * cellSize;
+            const centerX = x + cellSize / 2;
+            const centerY = y + cellSize / 2;
 
-            if (node.state === 'empty') {
-                ctx.fillStyle = 'white';
-                ctx.strokeStyle = '#ccc';
+            // only draw inside forest polygon if present
+            if (forestClip && !ctx.isPointInPath(forestClip, centerX, centerY)) return;
+
+            if (node.state === "empty") {
+                ctx.fillStyle = "white";
+                ctx.strokeStyle = "#ccc";
                 ctx.fillRect(x, y, cellSize, cellSize);
                 ctx.strokeRect(x, y, cellSize, cellSize);
             } else {
-                ctx.fillStyle = node.color || 'gray';
+                ctx.fillStyle = node.color || "gray";
                 ctx.fillRect(x, y, cellSize, cellSize);
             }
         });
 
-        ctx.strokeStyle = '#ccc';
-        for (let i = 0; i <= gridSize; i++) {
-            ctx.beginPath();
-            ctx.moveTo(0, i * cellSize);
-            ctx.lineTo(gridSize * cellSize, i * cellSize);
-            ctx.stroke();
-
-            ctx.beginPath();
-            ctx.moveTo(i * cellSize, 0);
-            ctx.lineTo(i * cellSize, gridSize * cellSize);
-            ctx.stroke();
+        // Optional: draw forest outline for context
+        if (forestClip) {
+            ctx.save();
+            ctx.globalAlpha = 0.3;
+            ctx.strokeStyle = "darkgreen";
+            ctx.lineWidth = 2;
+            ctx.stroke(forestClip);
+            ctx.restore();
         }
 
         stepIndex++;
