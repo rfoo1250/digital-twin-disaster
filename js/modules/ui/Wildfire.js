@@ -1,6 +1,6 @@
 // js/modules/ui/Wildfire.js
 // THIS CODE IS NOT TESTED, run sim!
-import * as d3 from "d3";
+// import * as d3 from "d3";
 import { loadWildfireSimulation, getWildfireData, getForestFeature } from "../services/DataManager.js";
 
 async function startSimulation(canvas) {

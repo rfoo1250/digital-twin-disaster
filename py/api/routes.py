@@ -87,7 +87,23 @@ def register_routes(app):
     def run_wildfire_simulation_route():
         try:
             logger.info("Running wildfire simulation")
-            result = run_wildfire_simulation()
+
+            forest_shape = None
+            # accept optional JSON payload that may include forestShape
+            if request.is_json:
+                data = request.get_json()
+                forest_shape = data.get('forestShape')
+            else:
+                # If there is a body but it's not JSON, reject it
+                if request.data and len(request.data) > 0:
+                    return jsonify({'error': 'Content-Type must be application/json'}), 400
+
+            result = run_wildfire_simulation(forest_shape=forest_shape)
+
+            # attach provided forest shape (if any) so frontend can clip/draw the polygon
+            # if forest_shape:
+            #     result['forestFeature'] = forest_shape
+
             return jsonify(result)
         except Exception as e:
             logger.error(f"Wildfire simulation failed: {str(e)}")

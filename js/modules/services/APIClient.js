@@ -1,5 +1,7 @@
 // js/modules/services/ApiClient.js
 
+import { getForestFeature } from './DataManager.js'
+
 const API_BASE_URL = 'http://127.0.0.1:5000';
 
 // --- Counterfactual SCM Simulation ---
@@ -38,11 +40,12 @@ async function runBatchSCMSimulation(payload) {
 
 // --- Wildfire Simulation ---
 async function runWildfireSimulation() {
+    const forestShape = getForestFeature();
     try {
         const response = await fetch(`${API_BASE_URL}/simulate_wildfire`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({}) // no payload needed, uses defaults
+            body: JSON.stringify({forestShape})
         });
         if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
         return await response.json();

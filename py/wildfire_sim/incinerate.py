@@ -197,7 +197,8 @@ def simulate_wind(g, edge_list, max_speed, epsilon, dist_scale):
 # Simulation Runner 
 # =========================================================================
 
-def run_wildfire_simulation():
+def run_wildfire_simulation(forest_shape=None):
+    print("[DEBUG] forestShape param:", forest_shape)
     logger.info(" Starting wildfire simulation (HTTP mode)")
     print(f"[DEBUG] Attempting to load dataset from: {CSV_FILE}")
     try:
