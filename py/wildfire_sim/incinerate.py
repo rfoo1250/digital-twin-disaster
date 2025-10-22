@@ -10,11 +10,12 @@ from config import ROOSEVELT_FOREST_COVER_CSV
 # User-configurable Parameters
 # =========================================================================
 CSV_FILE = ROOSEVELT_FOREST_COVER_CSV
-NODES = 100*100
+NODES = 50*50
 DENSITY_FACTOR = 0.95
-MAX_WIND_SPEED = 25
-THETA_FACTOR = 0.2
-TIMESTEPS = 100
+MAX_WIND_SPEED = 40
+THETA_FACTOR = 0.5
+PP_FACTOR = 2
+TIMESTEPS = 1000
 IGNITION_POINT = "random"
 
 logger = logging.getLogger(__name__)
@@ -264,7 +265,7 @@ def run_wildfire_simulation():
     for n1, n2 in edge_list:
         p1, p2 = g.nodes[n1]['pos'], g.nodes[n2]['pos']
         angle = get_angle(p1, p2)
-        pp = edge_weight(MAX_WIND_SPEED, 0.1, 0, angle, dist(p1, p2, dist_scale))
+        pp = edge_weight(MAX_WIND_SPEED, 0.1, 0, angle, dist(p1, p2, dist_scale)) * PP_FACTOR
         lf = np.floor((g.nodes[n1]['life'] + g.nodes[n2]['life']) / 2)
         g.add_edge(n1, n2, w=pp, color='green', life=int(lf), edge_strength=0, wind_speed=0.01, wind_dir=angle, eb=0)
 
@@ -308,7 +309,9 @@ def run_wildfire_simulation():
 
         g, _ = incinerate(g, [g.nodes[n]['color'] for n in sorted(g.nodes())], edge_list)
 
-        if i > 0 and i % 3 == 0:
+        if i > 0:
+        # if i > 0 and i % 3 == 0:
+        # increased wind freq to every timestep
             simulate_wind(g, edge_list, MAX_WIND_SPEED, 0.1, dist_scale)
 
         prev_burning_forests = current_burning_forests

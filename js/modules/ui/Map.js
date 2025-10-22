@@ -6,10 +6,12 @@
  * map's legend and display modes (Data Features vs. NRI).
  */
 import { appState, setState } from '../state.js';
-import { getCountyTopoData, getDataFeatures, getDataForFips, getNriData, getForestFeature } from '../services/DataManager.js';
+import { getCountyTopoData, getStateTopoData, getDataFeatures, getDataForFips, getNriData, getForestFeature } from '../services/DataManager.js';
 
 // Module-level variables
 const tooltip = d3.select("#tip");
+
+var strokeWidth = 1; // base
 
 /**
  * Initializes the Map module.
@@ -83,7 +85,7 @@ function drawMapDefault() {
         .attr("d", pathGen)
         .attr("fill", d => countMap.has(String(d.id).padStart(5, '0')) ? "#3182bd" : "#eee")
         .attr("stroke", "#999")
-        .attr("stroke-width", 1)
+        .attr("stroke-width", strokeWidth)
         .on("click", (e, d) => {
             const fips = String(d.id).padStart(5, "0");
             setState('selectedFips', fips); // Update central state
@@ -115,11 +117,11 @@ function drawMapDefault() {
                 .style("left", (e.pageX + 10) + "px")
                 .style("top",  (e.pageY - 28) + "px");
 
-            d3.select(e.currentTarget).attr("stroke", "#000").attr("stroke-width", 2);
+            d3.select(e.currentTarget).attr("stroke", "#000").attr("stroke-width", strokeWidth * 2);
         })
         .on("mouseout", (e, d) => {
             tooltip.style("opacity", 0);
-            d3.select(e.currentTarget).attr("stroke", "#999").attr("stroke-width", 1);
+            d3.select(e.currentTarget).attr("stroke", "#999").attr("stroke-width", strokeWidth);
         });
 
     // Trial: wildfire sim 
@@ -153,6 +155,65 @@ function drawMapDefault() {
 
     d3.select("#zoom_out").on("click", () => {
         svg.transition().call(zoom.scaleBy, 0.8);
+    });
+
+    // focus on state button
+    d3.select("#focus_on_state").on("click", () => {
+        const stateFips = appState.selectedFips.substring(0, 2);  // first 2 digits
+        const states = getStateTopoData();
+        const stateFeature = states.find(s => String(s.id).padStart(2, "0") === stateFips);
+
+        if (stateFeature) {
+            const [[x0, y0], [x1, y1]] = pathGen.bounds(stateFeature);
+            const dx = x1 - x0, dy = y1 - y0;
+            const x = (x0 + x1) / 2, y = (y0 + y1) / 2;
+            const scale = Math.max(1, Math.min(8, 0.9 / Math.max(dx / W, dy / H)));
+            const translate = [W / 2 - scale * x, H / 2 - scale * y];
+
+            svg.transition().duration(750).call(
+                zoom.transform,
+                d3.zoomIdentity.translate(translate[0], translate[1]).scale(scale)
+            );
+
+            // change the stroke width smaller for easier view
+            strokeWidth = 0.5;
+            g.selectAll("path").attr("stroke-width", strokeWidth);
+
+            // Dim other states
+            g.selectAll("path")
+                .transition().duration(500)
+                .style("opacity", d => String(d.id).substring(0, 2) === stateFips ? 1 : 0.2);
+
+            // Remove old outline if exists
+            g.selectAll(".state-outline").remove();
+
+            // Draw outline INSIDE g so it zooms along with counties
+            g.append("path")
+                .datum(stateFeature)
+                .attr("class", "state-outline")
+                .attr("d", pathGen)
+                .attr("fill", "none")
+                .attr("stroke", "black")
+                .attr("stroke-width", strokeWidth * 3)
+                .attr("pointer-events", "none"); // doesn’t block clicks
+        }
+    });
+
+    d3.select("#reset_focus").on("click", () => {
+        svg.transition().duration(750).call(
+            zoom.transform,
+            d3.zoomIdentity
+        );
+
+        strokeWidth = 1;
+        g.selectAll("path").attr("stroke-width", strokeWidth);
+
+        g.selectAll("path")
+            .transition().duration(500)
+            .style("opacity", 1);
+
+        // Remove outline
+        g.selectAll(".state-outline").remove();
     });
 
 
