@@ -12,10 +12,17 @@ from config import ROOSEVELT_FOREST_COVER_CSV
 # =========================================================================
 CSV_FILE = ROOSEVELT_FOREST_COVER_CSV
 NODES = 50*50
+# NODES = 20*20 # original
 DENSITY_FACTOR = 0.95
 MAX_WIND_SPEED = 40
-THETA_FACTOR = 0.5
-PP_FACTOR = 2
+THETA_FACTOR = 0.2
+PP_FACTOR = 5
+EMBER_PROB = 0.04           # per-burning-node chance to create an ember (long-range spark)
+EMBER_RADIUS = 7          # radius in grid cells for ember target search
+THRESHOLD_NOISE_LOW = 0.6  # multiplicative noise range for node thresholds
+THRESHOLD_NOISE_HIGH = 1.4
+EDGE_WEIGHT_NOISE_LOW = 0.6
+EDGE_WEIGHT_NOISE_HIGH = 1.6
 TIMESTEPS = 1000
 IGNITION_POINT = "random"
 
@@ -98,6 +105,8 @@ def node_threshold(slope, elevation, ele_min, ele_max, aspect, aspect_dict):
     dirn = get_direction(aspect)
     alpha = aspect_dict[dirn]
     theta = -np.arctan(phi_s * xi * alpha) / np.pi + 0.5
+    # Apply global factor to adjust how easily nodes ignite. Lower values => easier ignition.
+    theta = theta * THETA_FACTOR
     return round(theta, 2)
 
 def update_active_neighbors(g):
@@ -112,6 +121,8 @@ def node_id_to_grid(node_id, grid_size):
     return row, col
 
 def incinerate(g, colors, edge_list):
+    # cell scale (grid unit) based on global NODES so ember distances can be computed
+    cell_scale = 100.0 / NODES
     burning_nodes = get_burning(g, [n for n in g.nodes])
     nodes_to_ignite = []
 
@@ -123,7 +134,9 @@ def incinerate(g, colors, edge_list):
                 for burning_nb in active_neighbors:
                     if g.has_edge(burning_nb, nb):
                         w = g.get_edge_data(burning_nb, nb).get('w', 0)
-                        s = min(1, s + w)
+                        # add stochasticity to each contributing edge weight
+                        w_eff = w * rnd.uniform(EDGE_WEIGHT_NOISE_LOW, EDGE_WEIGHT_NOISE_HIGH)
+                        s = min(1, s + w_eff)
                 ths = g.nodes[nb]['threshold_switch']
                 if s >= ths:
                     nodes_to_ignite.append((nb, ignition_node))
@@ -135,6 +148,37 @@ def incinerate(g, colors, edge_list):
             g.nodes[nb]['color'] = 'orange'
             if g.has_edge(ignition_node, nb):
                 g[ignition_node][nb]['color'] = 'orange'
+
+    # Ember mechanic: burning nodes occasionally create embers that can ignite
+    # non-neighboring nodes within a radius to introduce long-range stochastic spread.
+    non_empty_nodes = [n for n in g.nodes if g.nodes[n]['fire_state'] not in ('empty', 'burning', 'burnt')]
+    for bnode in burning_nodes:
+        if not non_empty_nodes:
+            break
+        if rnd.random() < EMBER_PROB:
+            # pick targets within EMBER_RADIUS grid cells (using pos differences)
+            bx, by = g.nodes[bnode]['pos']
+            candidates = []
+            for n in non_empty_nodes:
+                nxp, nyp = g.nodes[n]['pos']
+                # grid distance approximation (cell units)
+                dx = abs(nxp - bx) / cell_scale
+                dy = abs(nyp - by) / cell_scale
+                if dx <= EMBER_RADIUS and dy <= EMBER_RADIUS:
+                    candidates.append(n)
+            if not candidates:
+                # fallback: allow global ember target occasionally
+                if rnd.random() < 0.1:
+                    candidates = non_empty_nodes
+            if candidates:
+                target = rnd.choice(candidates)
+                # ignite with some probability depending on a reduced chance
+                if rnd.random() < 0.5:
+                    g.nodes[target]['fire_state'] = 'burning'
+                    g.nodes[target]['color'] = 'orange'
+                    # color edges from nearby burning node if present
+                    if g.has_edge(bnode, target):
+                        g[bnode][target]['color'] = 'orange'
 
     lifeline_update(g, colors)
     life_edge_update(g, edge_list)
@@ -423,7 +467,9 @@ def run_wildfire_simulation(forest_shape=None):
     final_timestep = 0
     for i in range(TIMESTEPS + 1):
         final_timestep = i
-        if i > 0 and prev_burning_forests >= current_burning_forests:
+        # Option A: run until all burning nodes finish (simulate complete wildfire)
+        # Stop when there are no burning nodes left or when we've reached TIMESTEPS.
+        if current_burning_forests == 0:
             break
 
         timestep_data = {
