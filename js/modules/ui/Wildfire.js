@@ -1,6 +1,5 @@
 // js/modules/ui/Wildfire.js
 // THIS CODE IS NOT TESTED, run sim!
-// import * as d3 from "d3";
 import { loadWildfireSimulation, getWildfireData, getForestFeature } from "../services/DataManager.js";
 
 async function startSimulation(canvas) {
@@ -13,15 +12,16 @@ async function startSimulation(canvas) {
     const timesteps = wildfire.timesteps;
     const gridSize = wildfire.gridSize;
     const cellSize = Math.min(canvas.width / gridSize, canvas.height / gridSize);
-    const forestFeature = getForestFeature();
-    let forestClip = null;
-    if (forestFeature) {
-        const projection = d3.geoAlbersUsa()
-            .fitSize([canvas.width, canvas.height], forestFeature);
-        const pathGen = d3.geoPath().projection(projection);
-        const pathString = pathGen(forestFeature);
-        forestClip = new Path2D(pathString);
-    }
+    // Disabled forest clipping: rely on grid-based node 'empty' state to hide cells.
+    // const forestFeature = getForestFeature();
+    // let forestClip = null;
+    // if (forestFeature) {
+    //     const projection = d3.geoAlbersUsa()
+    //         .fitSize([canvas.width, canvas.height], forestFeature);
+    //     const pathGen = d3.geoPath().projection(projection);
+    //     const pathString = pathGen(forestFeature);
+    //     forestClip = new Path2D(pathString);
+    // }
 
     let stepIndex = 0;
     const finalStepIndex = timesteps.length - 1;
@@ -37,8 +37,9 @@ async function startSimulation(canvas) {
             const centerX = x + cellSize / 2;
             const centerY = y + cellSize / 2;
 
-            // only draw inside forest polygon if present
-            if (forestClip && !ctx.isPointInPath(forestClip, centerX, centerY)) return;
+            // forest clipping disabled; draw all grid cells and let node.state === 'empty'
+            // control visibility instead.
+            // if (forestClip && !ctx.isPointInPath(forestClip, centerX, centerY)) return;
 
             if (node.state === "empty") {
                 ctx.fillStyle = "white";
@@ -51,15 +52,15 @@ async function startSimulation(canvas) {
             }
         });
 
-        // Optional: draw forest outline for context
-        if (forestClip) {
-            ctx.save();
-            ctx.globalAlpha = 0.3;
-            ctx.strokeStyle = "darkgreen";
-            ctx.lineWidth = 2;
-            ctx.stroke(forestClip);
-            ctx.restore();
-        }
+        // Optional: forest outline drawing disabled
+        // if (forestClip) {
+        //     ctx.save();
+        //     ctx.globalAlpha = 0.3;
+        //     ctx.strokeStyle = "darkgreen";
+        //     ctx.lineWidth = 2;
+        //     ctx.stroke(forestClip);
+        //     ctx.restore();
+        // }
 
         stepIndex++;
         if (stepIndex < timesteps.length) {

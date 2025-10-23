@@ -3,6 +3,7 @@ import numpy as np
 import random as rnd
 import networkx as nx
 import logging
+from matplotlib.path import Path
 
 from config import ROOSEVELT_FOREST_COVER_CSV
 
@@ -208,10 +209,132 @@ def run_wildfire_simulation(forest_shape=None):
         return {"success": False, "error": f"Dataset file not found at {CSV_FILE}"}
 
     scale = 100 / NODES
+    # grid_size is needed by the forest-shape projection helper, compute it early
+    grid_size = int(np.ceil(np.sqrt(NODES)))
     proximity = 1.42 * scale
     dist_scale = 30
     pos_dict = {}
     aspect_dict = {'N': -0.063, 'NE':0.349, 'E':0.686, 'SE':0.557, 'S':0.039, 'SW':-0.155, 'W':-0.252, 'NW':-0.171}
+
+    # Helper: create a point-in-forest predicate from a provided forest_shape.
+    # Accepts GeoJSON-like dicts (Feature/Geometry), a list of (x,y) coords (polygon),
+    # or any object with a .contains(Point) method (e.g., shapely geometry).
+    # Assumption: the coordinates in `forest_shape` are in the same coordinate
+    # space as the generated grid positions (i*scale, j*scale).
+    def make_point_in_forest(shape_obj):
+        if not shape_obj:
+            return None
+
+        # If it's a Feature with geometry
+        if isinstance(shape_obj, dict) and shape_obj.get('type') == 'Feature':
+            shape_obj = shape_obj.get('geometry')
+
+        # If it's a GeoJSON geometry (lon/lat), project it into the simulation grid
+        # coordinate space so point-in-polygon tests work with `current_pos` = (i*scale, j*scale).
+        if isinstance(shape_obj, dict) and shape_obj.get('type') in ('Polygon', 'MultiPolygon'):
+            geom_type = shape_obj.get('type')
+            coords = shape_obj.get('coordinates', [])
+            polygons = []
+            if geom_type == 'Polygon' and coords:
+                polygons.append(coords[0])
+            elif geom_type == 'MultiPolygon' and coords:
+                for poly in coords:
+                    if poly:
+                        polygons.append(poly[0])
+
+            # collect raw lon/lat points across all rings to compute bbox
+            all_pts = []
+            for poly in polygons:
+                for lon, lat in poly:
+                    all_pts.append((float(lon), float(lat)))
+
+            if not all_pts:
+                return None
+
+            lon_vals = [p[0] for p in all_pts]
+            lat_vals = [p[1] for p in all_pts]
+            lon_min, lon_max = min(lon_vals), max(lon_vals)
+            lat_min, lat_max = min(lat_vals), max(lat_vals)
+
+            # grid coordinate range (match how nodes are generated: i*scale, j*scale for i,j=1..grid_size)
+            x_min = scale
+            x_max = grid_size * scale
+            y_min = scale
+            y_max = grid_size * scale
+
+            def _project(lon, lat):
+                # Preserve original shape (no non-uniform stretching): use a
+                # uniform scale so aspect ratio is maintained, then center the
+                # projected polygon inside the grid box.
+                lon_range = lon_max - lon_min
+                lat_range = lat_max - lat_min
+                x_range = x_max - x_min
+                y_range = y_max - y_min
+
+                # If both ranges are zero, just place at center
+                if lon_range == 0 and lat_range == 0:
+                    return ((x_min + x_max) / 2.0, (y_min + y_max) / 2.0)
+
+                # Determine uniform scale to preserve aspect ratio
+                if lon_range == 0:
+                    scale_u = y_range / lat_range if lat_range != 0 else 1.0
+                elif lat_range == 0:
+                    scale_u = x_range / lon_range if lon_range != 0 else 1.0
+                else:
+                    scale_u = min(x_range / lon_range, y_range / lat_range)
+
+                # Project relative positions then add centering offsets
+                proj_x = (float(lon) - lon_min) * scale_u
+                proj_y = (float(lat) - lat_min) * scale_u
+
+                total_proj_w = (lon_range if lon_range != 0 else 1.0) * scale_u
+                total_proj_h = (lat_range if lat_range != 0 else 1.0) * scale_u
+
+                offset_x = x_min + (x_range - total_proj_w) / 2.0
+                offset_y = y_min + (y_range - total_proj_h) / 2.0
+
+                x = offset_x + proj_x
+                y = offset_y + proj_y
+                return (x, y)
+
+            path_list = []
+            for poly in polygons:
+                try:
+                    proj_pts = [_project(lon, lat) for lon, lat in poly]
+                    path_list.append(Path(proj_pts))
+                except Exception:
+                    continue
+
+            if not path_list:
+                return None
+
+            def _fn(pt):
+                for p in path_list:
+                    if p.contains_point(pt):
+                        return True
+                return False
+
+            return _fn
+
+        # If it's a sequence of coordinates (outer ring)
+        if isinstance(shape_obj, (list, tuple)) and len(shape_obj) > 0 and isinstance(shape_obj[0], (list, tuple)):
+            try:
+                pts = [(float(x), float(y)) for x, y in shape_obj]
+                path = Path(pts)
+                return lambda pt: path.contains_point(pt)
+            except Exception:
+                return None
+
+        # If it has a 'contains' method (e.g., shapely geometry), use that
+        if hasattr(shape_obj, 'contains'):
+            from shapely.geometry import Point
+            def _fn_shapely(pt):
+                return bool(shape_obj.contains(Point(pt)))
+            return _fn_shapely
+
+        return None
+
+    point_in_forest = make_point_in_forest(forest_shape)
 
     if len(df) < NODES:
         nodes_count = len(df)
@@ -225,7 +348,6 @@ def run_wildfire_simulation(forest_shape=None):
     g = nx.Graph()
     empty_list = []
     k = 1
-    grid_size = int(np.ceil(np.sqrt(NODES)))
     # grid_size_y = int(np.ceil(NODES / grid_size_x))
 
     for i in range(1, grid_size + 1):
@@ -241,13 +363,27 @@ def run_wildfire_simulation(forest_shape=None):
 
             current_pos = (i * scale, j * scale)
 
-            if rnd.uniform(0, 1) > DENSITY_FACTOR:
+            # If a forest_shape was provided, force nodes outside it to be 'empty'.
+            inside_forest = True
+            if point_in_forest:
+                try:
+                    inside_forest = bool(point_in_forest(current_pos))
+                except Exception:
+                    inside_forest = True
+
+            if not inside_forest:
                 g.add_node(k, threshold_switch=1.0, color='black', num_of_active_neighbors=0,
                            fire_state='empty', life=lf, pos=current_pos)
                 empty_list.append(k)
             else:
-                g.add_node(k, threshold_switch=theta, color='green', num_of_active_neighbors=0,
-                           fire_state='not_burnt', life=lf, pos=current_pos)
+                # original density-based occupancy behavior
+                if rnd.uniform(0, 1) > DENSITY_FACTOR:
+                    g.add_node(k, threshold_switch=1.0, color='black', num_of_active_neighbors=0,
+                               fire_state='empty', life=lf, pos=current_pos)
+                    empty_list.append(k)
+                else:
+                    g.add_node(k, threshold_switch=theta, color='green', num_of_active_neighbors=0,
+                               fire_state='not_burnt', life=lf, pos=current_pos)
 
             pos_dict[k] = current_pos
             k += 1
