@@ -6,10 +6,15 @@ py310_venv/
 merged_file_unique.csv
 # *.xlsx    # Uncomment if you want to ignore all Excel files
 
+# Results files
+simulation_results/
+
 # Scripts (ignored intentionally)
 check_fips.py
 data_cleaning.py
+.DS_Store
 
 # Miscellaneous
+__pycache__/
 old*
 .resources.md

@@ -5,7 +5,7 @@ import logging
 from api.routes import register_routes
 from api.errors import register_error_handlers
 from utils.logger import configure_logging
-
+from config import DEFAULT_HOST, DEFAULT_PORT, DEBUG_MODE
 
 def create_app():
     """Application factory for the disaster simulation backend."""
@@ -28,4 +28,4 @@ def create_app():
 
 if __name__ == "__main__":
     app = create_app()
-    app.run(debug=True, host="0.0.0.0", port=5000)
+    app.run(debug=DEBUG_MODE, host=DEFAULT_HOST, port=DEFAULT_PORT)

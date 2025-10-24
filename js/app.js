@@ -6,12 +6,13 @@
  */
 import { appState, setState } from './modules/state.js';
 import { loadAllData, getDataForFips } from './modules/services/DataManager.js';
-import { runSimulation } from './modules/services/ApiClient.js';
+import { runSCMSimulation, runBatchSCMSimulation, runWildfireSimulation } from './modules/services/ApiClient.js';
 import SliderPanel from './modules/ui/SliderPanel.js';
 import SnapshotPanel from './modules/ui/SnapshotPanel.js';
 import Map from './modules/ui/Map.js';
 import Charts from './modules/ui/Charts.js';
 import Modal from './modules/ui/Modal.js';
+import Wildfire from './modules/ui/Wildfire.js';
 
 document.addEventListener('DOMContentLoaded', () => {
     console.log('[INFO] Application Initializing...');
@@ -22,6 +23,7 @@ document.addEventListener('DOMContentLoaded', () => {
     SnapshotPanel.init();
     Charts.init();
     Modal.init();
+    Wildfire.init();
 
     // Listen for FIPS changes to update the original data dictionary
     document.addEventListener('state:changed', (e) => {
@@ -53,7 +55,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 dag_key: dagKey,
             };
 
-            const response = await runSimulation(payload);
+            const response = await runSCMSimulation(payload);
 
             // Update the UI with the results from the simulation
             if (response && response.results) {

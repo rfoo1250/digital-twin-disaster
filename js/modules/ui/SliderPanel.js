@@ -17,7 +17,8 @@
 
 // imports
 import { appState, setState } from '../state.js';
-import { getDataFeatures, getDataForFips, columnDefinitions } from '../services/DataManager.js';
+import { getDataFeatures, getDataForFips } from '../services/DataManager.js';
+import { columnDefinitions } from '../services/data.js';
 
 // --- Helper Functions ---
 

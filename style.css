@@ -3,7 +3,7 @@
 :root{
   --bg:#f9fafc;
   --card:#fff;
-  --border:#dfe3e8;
+  --border:#cdd2d9;
   --txt:#24313f;
   --accent:#006dba;
   --dark-accent: #004a7a;
@@ -1006,4 +1006,9 @@ header .controls{
   padding: 0;               /* tighter square buttons */
 }
 
-
+#wildfire-sim-container {
+  background-color: white;
+  padding: 10px;
+  border-radius: 2px;
+  border: 1px solid var(--border);
+}
