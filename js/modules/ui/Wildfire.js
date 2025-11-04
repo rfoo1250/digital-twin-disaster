@@ -1,6 +1,19 @@
 // js/modules/ui/Wildfire.js
-// THIS CODE IS NOT TESTED, run sim!
+// Wildfire canvas UI: load simulation data and render timesteps to a canvas.
+// - Exports: default { init } — wires UI inside '#wildfire-sim-container'.
+// - Depends on DataManager: loadWildfireSimulation(), getWildfireData(), getForestFeature().
+// - Expected data shape (wildfire): { timesteps: [ { timestep, burning, burnt, total, nodes: [{id,state,color,row,col},...] }, ... ], gridSize }
+// - Rendering: computes cellSize = min(canvas.width/gridSize, canvas.height/gridSize).
+//   maps node.row/node.col → canvas with inverted Y: y = (gridSize-1-row)*cellSize.
+// - Behavior notes: empty cells (state==='empty') are skipped (transparent).
+// - Disabled features: forest clipping and tooltips are intentionally left commented out.
+// - TODOs: add legend drawing, make playback speed configurable, use requestAnimationFrame for smooth anim, optimize large-grid redraws.
+
+
+
 import { loadWildfireSimulation, getWildfireData, getForestFeature } from "../services/DataManager.js";
+import { appState } from "../state.js";
+import { computeBoundingBox, loadMapBackground } from './WildfireMapLayer.js';
 
 async function startSimulation(canvas) {
     const ctx = canvas.getContext('2d');
@@ -9,6 +22,7 @@ async function startSimulation(canvas) {
     // Load wildfire sim data
     await loadWildfireSimulation();
     const wildfire = getWildfireData();
+    
     const timesteps = wildfire.timesteps;
     const gridSize = wildfire.gridSize;
     const cellSize = Math.min(canvas.width / gridSize, canvas.height / gridSize);
@@ -25,7 +39,8 @@ async function startSimulation(canvas) {
 
     let stepIndex = 0;
     const finalStepIndex = timesteps.length - 1;
-    addTooltip(canvas, gridSize, cellSize, timesteps, () => (stepIndex <= finalStepIndex ? stepIndex : finalStepIndex));
+    // Tooltip disabled: UI tooltips are commented out to reduce DOM interactions
+    // addTooltip(canvas, gridSize, cellSize, timesteps, () => (stepIndex <= finalStepIndex ? stepIndex : finalStepIndex));
 
     function drawStep() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -36,20 +51,17 @@ async function startSimulation(canvas) {
             const y = (gridSize - 1 - node.row) * cellSize;
             const centerX = x + cellSize / 2;
             const centerY = y + cellSize / 2;
-
-            // forest clipping disabled; draw all grid cells and let node.state === 'empty'
-            // control visibility instead.
+            // forest clipping disabled; skip drawing cells marked 'empty' so they stay transparent
             // if (forestClip && !ctx.isPointInPath(forestClip, centerX, centerY)) return;
 
             if (node.state === "empty") {
-                ctx.fillStyle = "white";
-                ctx.strokeStyle = "#ccc";
-                ctx.fillRect(x, y, cellSize, cellSize);
-                ctx.strokeRect(x, y, cellSize, cellSize);
-            } else {
-                ctx.fillStyle = node.color || "gray";
-                ctx.fillRect(x, y, cellSize, cellSize);
+                // leave transparent (do not draw); legend remains intact elsewhere
+                return;
             }
+
+            // draw occupied / burning / burnt cells
+            ctx.fillStyle = node.color || "gray";
+            ctx.fillRect(x, y, cellSize, cellSize);
         });
 
         // Optional: forest outline drawing disabled
@@ -71,6 +83,7 @@ async function startSimulation(canvas) {
     drawStep();
 }
 
+/*
 function addTooltip(canvas, gridSize, cellSize, timesteps, getStepIndex) {
     const tooltip = document.createElement('div');
     tooltip.style.position = 'absolute';
@@ -116,11 +129,82 @@ function addTooltip(canvas, gridSize, cellSize, timesteps, getStepIndex) {
         tooltip.style.display = 'none';
     });
 }
+*/
 
-function init() {
+async function init() {
+    // loads container and alll those
     const container = document.getElementById('wildfire-sim-container');
-    const canvas = container.querySelector('#wildfire-canvas');
-    const runBtn = container.querySelector('#run-wildfire-sim');
+    if (!container) {
+        console.error('Could not find wildfire-sim-container');
+        return;
+    }
+
+    // Ensure container is positioned for overlay
+    container.style.position = 'relative';
+    container.style.width = '100%';
+    container.style.height = '100%';
+
+    // Create or get canvas
+    let canvas = container.querySelector('#wildfire-canvas');
+    if (!canvas) {
+        canvas = document.createElement('canvas');
+        canvas.id = 'wildfire-canvas';
+        canvas.style.position = 'absolute';
+        canvas.style.left = '0';
+        canvas.style.top = '0';
+        canvas.style.width = '100%';
+        canvas.style.height = '100%';
+        container.appendChild(canvas);
+    }
+
+    // Create or get run button
+    let runBtn = container.querySelector('#run-wildfire-sim');
+    if (!runBtn) {
+        runBtn = document.createElement('button');
+        runBtn.id = 'run-wildfire-sim';
+        runBtn.textContent = 'Run Simulation';
+        runBtn.style.position = 'absolute';
+        runBtn.style.bottom = '10px';
+        runBtn.style.right = '10px';
+        container.appendChild(runBtn);
+    }
+
+    // Set canvas size to match container
+    const updateCanvasSize = () => {
+        canvas.width = container.clientWidth;
+        canvas.height = container.clientHeight;
+    };
+    console.log("[DEBUG] canvas.width:", canvas.width, "[DEBUG] canvas.height:", canvas.height);
+    updateCanvasSize();
+    window.addEventListener('resize', updateCanvasSize);
+
+    const setupWildfireMap = async () => {
+        // Load initial forest feature and set up map
+        const forestFeature = getForestFeature();
+        if (!forestFeature) return;
+        console.log("[DEBUG] forestFeature:", forestFeature); // works
+        const bbox = computeBoundingBox(forestFeature, 0.15); // 15% padding
+        
+        console.log("[DEBUG] bbox:", bbox); // works
+        // Load map background (now expects apiKey to be handled internally)
+        await loadMapBackground({
+            container,
+            canvas,
+            bbox
+        });
+
+    }
+
+
+    if (appState.isDataLoaded) {
+        setupWildfireMap();
+    } else {
+        document.addEventListener('state:changed', (e) => {
+            if (e.detail.key === 'isDataLoaded' && e.detail.value === true) {
+                setupWildfireMap();
+            }
+        });
+    }
 
     runBtn.addEventListener('click', () => {
         startSimulation(canvas);
