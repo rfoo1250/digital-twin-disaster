@@ -94,6 +94,7 @@ button:hover{
 
 /* Main layout - left panel (map) and right panel (controls) */
 main {
+  margin-top: 50px;
   padding: 2rem;
   display: grid;
   grid-template-columns: 1fr 300px;
