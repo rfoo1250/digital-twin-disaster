@@ -275,8 +275,8 @@ function drawMapDefault() {
 
     
     // --- Dropdown toggle behavior ---
-    const dropdownBtn = document.getElementById("layer-toggle-btn");
-    const dropdownMenu = document.getElementById("layer-dropdown");
+    const dropdownBtn = document.getElementById("main-map-layer-toggle-btn");
+    const dropdownMenu = document.getElementById("main-map-layer-dropdown");
 
     if (dropdownBtn) {
     dropdownBtn.addEventListener("click", () => {

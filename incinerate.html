@@ -6,7 +6,7 @@
   ================================================================== -->
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>New Map Page</title>
+  <title>Incinerate - Wildfire Sim Page</title>
 
   <!-- Google Fonts -->
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -17,15 +17,20 @@
   <!-- D3.js and TopoJSON Libraries (Essential for the map) -->
   <script src="https://d3js.org/d3.v7.min.js" defer></script>
   <script src="https://d3js.org/topojson.v3.min.js" defer></script>
+
+  <!-- Leaflet -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 </head>
 <body>
 
   <!-- =================================================================
   HEADER: Provides consistent navigation across all pages.
   ================================================================== -->
-  <header>
-    <!-- Auto loads nav buttons here now -->
-    
+  <header class="toolbar">
+    <!-- <button class="menu-button" id="menu-toggle">☰</button> -->
+    <!-- This is for a side drawer, not sure if we need it yet. -->
+    <span class="toolbar-title">Digital Twin</span>
   </header>
 
   <!-- =================================================================
@@ -53,19 +58,28 @@
           <button id="focus_on_state">Focus on state</button>
           <button id="reset_focus">Reset focus from state</button>
 
-          <div id="layer-dropdown" class="dropdown">
-            <button id="layer-toggle-btn" class="dropdown-btn">Layers ▾</button>
-            <div id="layer-menu" class="dropdown-content">
+          <div id="main-map-layer-dropdown" class="dropdown">
+            <button id="main-map-layer-toggle-btn" class="dropdown-btn">Main Map Layers ▾</button>
+            <div id="main-map-layer-menu" class="dropdown-content">
               <label><input type="checkbox" id="toggle-forest" checked> Forest Layer</label><br>
+            </div>
+          </div>
+          
+          <div id="wildfire-sim-layer-dropdown" class="dropdown">
+            <button id="wildfire-sim-layer-toggle-btn" class="dropdown-btn">Wildfire Sim Layers ▾</button>
+            <div id="wildfire-sim-layer-menu" class="dropdown-content">
+              <label><input type="checkbox" id="toggle-background" checked> Background Map Layer</label><br>
             </div>
           </div>
 
           <!-- Wildfire Simulation Panel -->
           <section id="wildfire-sim-container">
             <h3>Wildfire Simulation</h3>
-            <canvas id="wildfire-canvas" width="300" height="300"
-                    style="border:1px solid #aaa; margin-bottom:8px;"></canvas>
-            <div id="wildfire-legend" style="margin-bottom:8px; font-size:12px;">
+            <div id="wildfire-overlay">
+              <div class="wildfire-map-layer"></div>  <!-- Leaflet map fits overlay -->
+              <canvas id="wildfire-canvas"></canvas>  <!-- simulation overlay -->
+            </div>
+            <div id="wildfire-legend">
               <div><span style="display:inline-block;width:12px;height:12px;background:orange;margin-right:4px;"></span>Burning</div>
               <div><span style="display:inline-block;width:12px;height:12px;background:brown;margin-right:4px;"></span>Burnt</div>
               <div><span style="display:inline-block;width:12px;height:12px;background:green;margin-right:4px;"></span>Not burnt</div>

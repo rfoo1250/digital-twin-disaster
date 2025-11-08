@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Disaster Bench</title>
+
+  <!-- CSS -->
+  <link rel="stylesheet" href="style.css"/>
+
+  <!-- D3 & TopoJSON -->
+  <script src="https://d3js.org/d3.v7.min.js" defer></script>
+  <script src="https://d3js.org/topojson.v3.min.js" defer></script>
+
+  <!-- JS -->
+  <script type="module" src="js/app.js" defer></script>
+  <script src="nav_control.js" defer></script>
+
+</head>
+
+
+<body>
+  <header>
+    <!-- Auto loads nav buttons here now -->
+    
+      <label for="map-mode" style="margin-left:1rem; font-weight:500; display:flex; align-items:center;">
+  Choropleth:
+  <select id="map-mode" style="margin-left:0.5rem; padding:4px;">
+    <option value="features">Data Features</option>
+    <option value="nri">NRI Index</option>
+  </select>
+</label>
+
+    </nav>
+    
+  </header>
+
+  <main id="viz">
+    <!-- Left: US county choropleth -->
+    <div class="left-panel">
+      <svg id="map" class="chart" role="img"></svg>
+      <div class="zoom-controls">
+        <p id="zoom-label">Zoom</p>
+        <button id="zoom_in">+</button>
+        <button id="zoom_out">-</button>
+      </div>
+      <div id="county-selected-text-container">
+        <p id="county_selected_text"></p>
+
+      </div>
+    </div>
+    <!-- Right: features bar + Dynamic World panel -->
+    <!-- <div class="side-charts">
+      <svg id="bar" class="chart" role="img"></svg>
+
+    </div> -->
+
+    <div class="side-charts">
+      <div class="bar-controls">
+        <span class="bar-label">Importance:</span>
+      
+        <!-- now just plain buttons -->
+        <div class="dropdown">
+                <button id="feature-btn" class="dropbtn">Features</button>
+              </div>
+              <div class="dropdown">
+                <button id="group-btn" class="dropbtn">Feature Groups</button>
+             </div>
+
+        <!-- Sources = regular button wrapped in .dropdown for spacing -->
+        <div class="dropdown" >
+          <button id="source-btn" class="dropbtn">Sources</button>
+        </div>
+      </div>
+      
+        
+    
+        <!-- 2) Your existing bar chart -->
+        <svg id="bar" class="chart" role="img"></svg>
+      </div>
+    </div>
+
+
+  </main>
+
+  <div id="tip" class="tooltip"></div>
+</body>
+</html>

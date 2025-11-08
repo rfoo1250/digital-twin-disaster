@@ -28,8 +28,10 @@ document.addEventListener('DOMContentLoaded', function() {
         const nav = temp.firstElementChild;
 
         // Insert nav as the FIRST element inside <header>
-        header.insertBefore(nav, header.firstChild);
-
+        // header.insertBefore(nav, header.firstChild);
+        // Insert after dawg
+        header.appendChild(nav);
+        
         updateNavButtons(); // highlight current page
       }
     });

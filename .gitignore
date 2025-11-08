@@ -16,5 +16,5 @@ data_cleaning.py
 
 # Miscellaneous
 __pycache__/
-old*
+old_*
 .resources.md

@@ -2,12 +2,12 @@
 
 import { getForestFeature } from './DataManager.js'
 
-const API_BASE_URL = 'http://127.0.0.1:5000';
+const LOCAL_API_BASE_URL = 'http://127.0.0.1:5000';
 
 // --- Counterfactual SCM Simulation ---
 async function runSCMSimulation(payload) {
     try {
-        const response = await fetch(`${API_BASE_URL}/simulate`, {
+        const response = await fetch(`${LOCAL_API_BASE_URL}/simulate`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
@@ -24,7 +24,7 @@ async function runSCMSimulation(payload) {
 // --- Batch SCM Simulation ---
 async function runBatchSCMSimulation(payload) {
     try {
-        const response = await fetch(`${API_BASE_URL}/simulate/batch`, {
+        const response = await fetch(`${LOCAL_API_BASE_URL}/simulate/batch`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
@@ -42,7 +42,7 @@ async function runBatchSCMSimulation(payload) {
 async function runWildfireSimulation() {
     const forestShape = getForestFeature();
     try {
-        const response = await fetch(`${API_BASE_URL}/simulate_wildfire`, {
+        const response = await fetch(`${LOCAL_API_BASE_URL}/simulate_wildfire`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({forestShape})

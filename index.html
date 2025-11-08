@@ -1,90 +1,67 @@
+<!-- =================================================================
+template.html: this is just a template that includes the map, nav, content needed
+================================================================== -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-
+  <!-- =================================================================
+  HEAD: Contains metadata, fonts, stylesheets, and required libraries.
+  ================================================================== -->
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>Disaster Bench</title>
+  <title>New Map Page</title>
 
-  <!-- CSS -->
-  <link rel="stylesheet" href="style.css"/>
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
-  <!-- D3 & TopoJSON -->
+  <!-- Main Stylesheet (assumes it's in a parent directory) -->
+  <link rel="stylesheet" href="../style.css"/>
+
+  <!-- D3.js and TopoJSON Libraries (Essential for the map) -->
   <script src="https://d3js.org/d3.v7.min.js" defer></script>
   <script src="https://d3js.org/topojson.v3.min.js" defer></script>
-
-  <!-- JS -->
-  <script type="module" src="js/app.js" defer></script>
-  <script src="nav_control.js" defer></script>
-
 </head>
-
-
 <body>
-  <header>
-    <!-- Auto loads nav buttons here now -->
-    
-      <label for="map-mode" style="margin-left:1rem; font-weight:500; display:flex; align-items:center;">
-  Choropleth:
-  <select id="map-mode" style="margin-left:0.5rem; padding:4px;">
-    <option value="features">Data Features</option>
-    <option value="nri">NRI Index</option>
-  </select>
-</label>
 
-    </nav>
-    
+  <!-- =================================================================
+  HEADER: Provides consistent navigation across all pages.
+  ================================================================== -->
+  <header class="toolbar">
+    <!-- <button class="menu-button" id="menu-toggle">☰</button> -->
+    <!-- This is for a side drawer, not sure if we need it yet. -->
+    <span class="toolbar-title">Digital Twin</span>
   </header>
 
+  <!-- =================================================================
+  MAIN CONTENT: Holds the primary visualization elements.
+  ================================================================== -->
   <main id="viz">
-    <!-- Left: US county choropleth -->
+
+    <!-- Map Container: The Map.js module will target this SVG element. -->
     <div class="left-panel">
       <svg id="map" class="chart" role="img"></svg>
-      <div class="zoom-controls">
-        <p id="zoom-label">Zoom</p>
-        <button id="zoom_in">+</button>
-        <button id="zoom_out">-</button>
-      </div>
-      <div id="county-selected-text-container">
-        <p id="county_selected_text"></p>
-
-      </div>
-    </div>
-    <!-- Right: features bar + Dynamic World panel -->
-    <!-- <div class="side-charts">
-      <svg id="bar" class="chart" role="img"></svg>
-
-    </div> -->
-
-    <div class="side-charts">
-      <div class="bar-controls">
-        <span class="bar-label">Importance:</span>
-      
-        <!-- now just plain buttons -->
-        <div class="dropdown">
-                <button id="feature-btn" class="dropbtn">Features</button>
-              </div>
-              <div class="dropdown">
-                <button id="group-btn" class="dropbtn">Feature Groups</button>
-             </div>
-
-        <!-- Sources = regular button wrapped in .dropdown for spacing -->
-        <div class="dropdown" >
-          <button id="source-btn" class="dropbtn">Sources</button>
-        </div>
-      </div>
-      
-        
-    
-        <!-- 2) Your existing bar chart -->
-        <svg id="bar" class="chart" role="img"></svg>
-      </div>
+      <p id="county_selected_text">Select a county on the map.</p>
     </div>
 
+    <!-- You can add other panels or content here as needed. -->
+    <!-- For a map-only page, this is all you need inside <main>. -->
 
   </main>
 
+  <!-- =================================================================
+  SHARED ELEMENTS & SCRIPT: Tooltip and the main application entry point.
+  ================================================================== -->
+  
+  <!-- Tooltip Container: Essential for the map's hover functionality. -->
   <div id="tip" class="tooltip"></div>
+
+  <!-- 
+    Application Entry Point: 
+    This single script loads your entire refactored application. 
+    The Map.js module will automatically find the #map element and render into it.
+  -->
+  <script type="module" src="../js/app.js" defer></script>
+  <script src="nav_control.js" defer></script>
+
 </body>
 </html>

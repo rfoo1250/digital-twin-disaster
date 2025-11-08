@@ -94,6 +94,7 @@ button:hover{
 
 /* Main layout - left panel (map) and right panel (controls) */
 main {
+  margin-top: 50px;
   padding: 2rem;
   display: grid;
   grid-template-columns: 1fr 300px;
@@ -163,22 +164,23 @@ button:hover{
 }
 
 .nav-btn {
-  border:1px solid var(--border);
-  background: var(--accent);
-  color: white;
-  border-radius:var(--radius);
-  padding:4px 10px;
-  font-size:.8rem;
-  cursor:pointer;
-  transition: background-color 0.2s;
+  background: white;
+  color: var(--txt);
+  border: none;                /* no borders */
+  border-radius: var(--radius);
+  padding: 4px 10px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: background-color 0.2s, color 0.2s;
 }
 .nav-btn:hover {
-  background: var(--dark-accent);
+  background: #f0f0f0;         /* subtle hover */
 }
 .nav-btn.active {
-  background: var(--dark-accent);
+  background: var(--accent);
+  color: white;
   pointer-events: none;
-  cursor: not-allowed;
+  cursor: default;
 }
 
 .btn {
@@ -1011,4 +1013,67 @@ header .controls{
   padding: 10px;
   border-radius: 2px;
   border: 1px solid var(--border);
+}
+
+#wildfire-overlay {
+  width: 300px;
+  height: 300px;
+  position: relative;
+  z-index: 500;
+}
+.wildfire-map-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+}
+#wildfire-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+#wildfire-legend {
+  margin-top: 10px;
+  margin-bottom:8px;
+  font-size: 12px;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  height: 56px;
+  background-color: var(--accent); /* use UI blue */
+  border-bottom: none;
+  padding: 0 16px;
+  color: white;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+}
+.toolbar-title {
+  font-weight: 600;
+  font-size: 18px;
+  user-select: none;
+  color: white;             /* ensure white text */
+}
+
+.menu-button {
+  background: none;
+  border: none;            /* no borders */
+  color: white;            /* white icons/text */
+  font-size: 24px;
+  margin-right: 16px;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+.menu-button:hover {
+  opacity: 0.85;           /* subtle hover feedback */
 }
