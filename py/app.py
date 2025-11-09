@@ -34,12 +34,14 @@ def create_app():
     
     # Authenticate and initialize GEE on startup
     logger.info("Initializing Google Earth Engine...")
-    initialize_gee()
+    try:
+        initialize_gee()
+    except Exception as e:
+        logger.error(f"GEE initialization failed: {e}")
 
     # Register route blueprints and error handlers
     logger.info("Registering API routes...")
     register_routes(app)
-    app.register_blueprint(gee_bp)
     register_error_handlers(app)
 
     return app

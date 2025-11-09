@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 gee_bp = Blueprint('gee_bp', __name__)
 
 
-@gee_bp.route('/api/get_layer', methods=['POST'])
+@gee_bp.route('/get_layer', methods=['POST'])
 def get_dynamic_gee_layer():
     """
     This endpoint receives a GeoJSON geometry and returns a
@@ -25,7 +25,7 @@ def get_dynamic_gee_layer():
     try:
         data = request.json
         if not data or 'geometry' not in data:
-            logger.warning("API Call: /api/get-layer missing 'geometry'")
+            logger.warning("API Call: get_layer missing 'geometry'")
             return jsonify({"error": "Missing 'geometry' in request body"}), 400
         
         # Call the service function to do the GEE work
@@ -34,5 +34,5 @@ def get_dynamic_gee_layer():
         return jsonify({ 'url': url })
 
     except Exception as e:
-        logger.error(f"API Error: /api/get-layer failed: {e}")
+        logger.error(f"API Error: /get-layer failed: {e}")
         return jsonify({ 'error': 'Failed to process GEE request' }), 500
