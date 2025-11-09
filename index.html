@@ -27,7 +27,11 @@
         <div class="left-panel">
             <section class="map-container">
                 <!-- <h2 class="section-title">Interactive Map</h2> -->
-                <div id="map"></div>
+                <div id="map">
+                    <div id="county-selected-text-container">
+                        <p id="county_selected_text">No county selected</p>
+                    </div>
+                </div>
             </section>
         </div>
 
@@ -36,11 +40,16 @@
                 <!-- to be changed -->
                 <h3>Map Layers</h3>
 
+                <div class="map-controls">
+                    <button id="focus-on-county">Focus on County</button>
+                    <button id="reset-focus">Reset Focus</button>
+                </div>
+
                 <div class="dropdown">
                     <button class="dropdown-btn">Base Layers ▾</button>
                     <div class="dropdown-content">
-                        <!-- <label><input type="checkbox" id="toggle-roads" checked> Roads</label><br> -->
                         <label><input type="checkbox" id="toggle-counties" checked> County Borders</label><br>
+                        <label><input type="checkbox" id="toggle-forest"> Forest Layer (GEE)</label><br>
                     </div>
                 </div>
 
@@ -49,6 +58,7 @@
     </main>
 
     <div id="tip" class="tooltip"></div>
+    <div id="toast" class="toast"></div>
 
     <script type="module" src="./js/app.js"></script>
 </body>

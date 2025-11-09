@@ -23,21 +23,40 @@ main#main {
 }
 
 .map-container {
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
-  padding: 5px;             /* ✅ add internal space */
-  height: calc(100% - 1rem); /* ✅ prevents overflow */
-  display: flex;
-  flex-direction: column;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 5px;
+    height: calc(100% - 1rem);
+    display: flex;
+    flex-direction: column;
 }
 
 #map {
-  width: 100%;
-  flex-grow: 1;              /* ✅ fills remaining space neatly */
+    position: relative;
+    width: 100%;
+    flex-grow: 1;
+    border-radius: var(--radius);
+    /* box-shadow: var(--shadow); */
+}
+
+#county-selected-text-container {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid var(--border);
   border-radius: var(--radius);
-  /* box-shadow: var(--shadow); */
+  padding: 6px 10px;
+  box-shadow: var(--shadow);
+  z-index: 500; /* above map tiles but below Leaflet controls */
+}
+
+#county_selected_text {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--txt);
 }
 
 /* Right control panel */
