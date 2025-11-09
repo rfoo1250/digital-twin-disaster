@@ -1,37 +1,25 @@
 /**
  * state.js
- *
- * This module serves as the single source of truth for the entire application.
- * All shared data, like loaded CSVs, user selections, and slider values,
- * is stored and managed here.
+ * ---------------------------------------------
+ * Centralized reactive store for the Wildfire Simulation app.
+ * Tracks high-level data and application status.
  */
 
 const appState = {
-  isDataLoaded: false,
-  allData: null,
-  selectedFips: null,
-  originalDataForFips: {},
-  interventions: {},
+    isDataLoaded: false,
+    allData: null,
+    wildfireData: null,   // stores the active wildfire simulation result
 };
 
 /**
- * Updates a value in the central application state and dispatches an event
- * to notify other modules of the change.
- * @param {string} key - The state property to update (e.g., 'selectedFips').
- * @param {*} value - The new value for the property.
+ * Updates a value in the global app state and dispatches a change event.
+ * @param {string} key - The state key to update
+ * @param {*} value - The new value
  */
 function setState(key, value) {
-  if (key === 'selectedFips' && appState.selectedFips !== value) {
-    appState.interventions = {};
-    document.dispatchEvent(new CustomEvent('state:changed', { detail: { key: 'interventions', value: {} } }));
-  }
-
-  appState[key] = value;
-  
-  document.dispatchEvent(new CustomEvent('state:changed', { detail: { key, value } }));
-
-  console.log(`State updated: ${key}`, value);
+    appState[key] = value;
+    document.dispatchEvent(new CustomEvent('state:changed', { detail: { key, value } }));
+    console.log(`[STATE] ${key} updated:`, value);
 }
 
 export { appState, setState };
-

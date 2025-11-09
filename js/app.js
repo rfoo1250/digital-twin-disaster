@@ -1,78 +1,30 @@
 /**
  * app.js
- * * Main entry point for the application. This file initializes all modules,
- * loads the necessary data, and orchestrates the primary user interactions,
- * such as the "Compute" button click.
+ * ---------------------------------------------
+ * Entry point for the Wildfire Simulation frontend.
+ * Initializes the map UI and connects it to the backend API.
  */
-import { appState, setState } from './modules/state.js';
-import { loadAllData, getDataForFips } from './modules/services/DataManager.js';
-import { runSCMSimulation, runBatchSCMSimulation, runWildfireSimulation } from './modules/services/ApiClient.js';
-import SliderPanel from './modules/ui/SliderPanel.js';
-import SnapshotPanel from './modules/ui/SnapshotPanel.js';
+
 import Map from './modules/ui/Map.js';
-import Charts from './modules/ui/Charts.js';
-import Modal from './modules/ui/Modal.js';
-import Wildfire from './modules/ui/Wildfire.js';
+// import Wildfire from './modules/ui/Wildfire.js';
+import { loadAllData } from './modules/services/DataManager.js';
 
-document.addEventListener('DOMContentLoaded', () => {
-    console.log('[INFO] Application Initializing...');
+document.addEventListener('DOMContentLoaded', async () => {
+    console.log('[INFO] Wildfire Simulation App Initializing...');
 
-    // Initialize all UI components
-    Map.init();
-    SliderPanel.init();
-    SnapshotPanel.init();
-    Charts.init();
-    Modal.init();
-    Wildfire.init();
+    try {
+        // Load required data (topo or any shared data used by wildfire)
+        await loadAllData();
+        console.log('[INFO] Data loaded successfully.');
 
-    // Listen for FIPS changes to update the original data dictionary
-    document.addEventListener('state:changed', (e) => {
-        if (e.detail.key === 'selectedFips' && e.detail.value) {
-            const fipsData = getDataForFips(e.detail.value);
-            setState('originalDataForFips', fipsData);
-        }
-    });
+        // Initialize the Leaflet map and interaction logic
+        Map.init();
+        // Wildfire.init();
 
-    // Load the data, which will trigger other modules to render
-    loadAllData();
+        console.log('[INFO] Wildfire Simulation App Initialized Successfully.');
 
-    // Setup the "Compute" button logic
-    const computeBtn = document.getElementById('compute_result_button');
-    if (computeBtn) {
-        computeBtn.addEventListener('click', async () => {
-            const dagKey = document.getElementById('dagSelect').value;
-
-            if (!appState.selectedFips) {
-                return alert('Please select a county on the map first.');
-            }
-            if (!dagKey) {
-                return alert('Please choose a causal model (DAG) from the dropdown.');
-            }
-            
-            const payload = {
-                original_dict: appState.originalDataForFips,
-                interventions_dict: appState.interventions,
-                dag_key: dagKey,
-            };
-
-            const response = await runSCMSimulation(payload);
-
-            // Update the UI with the results from the simulation
-            if (response && response.results) {
-                const { original_label, counterfactual_label } = response.results;
-                const originalPredictionEl = document.getElementById('value');
-                const counterfactualPredictionEl = document.getElementById('resValue');
-
-                if (originalPredictionEl) {
-                    originalPredictionEl.textContent = `Original Prediction: ${original_label}`;
-                }
-                if (counterfactualPredictionEl) {
-                    counterfactualPredictionEl.textContent = `Counterfactual Prediction: ${counterfactual_label}`;
-                }
-            } else {
-                console.error("API response did not contain valid results.", response);
-                alert("Could not retrieve simulation results. See console for details.");
-            }
-        });
+    } catch (err) {
+        console.error('[ERROR] App initialization failed:', err);
+        alert('Failed to initialize the wildfire simulation. See console for details.');
     }
 });

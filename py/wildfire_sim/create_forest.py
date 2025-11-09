@@ -1,4 +1,8 @@
-"""Forest shape utilities: build point-in-polygon predicate from GeoJSON/list/shapely."""
+"""
+ARCHIVED MODULE
+create_forest.py – retained for historical reference.
+This module is no longer imported anywhere in the current wildfire simulation.
+"""
 from matplotlib.path import Path
 
 # Import SSOT `state.py` with a robust fallback for different run contexts

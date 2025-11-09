@@ -1,67 +1,46 @@
-<!-- =================================================================
-template.html: this is just a template that includes the map, nav, content needed
-================================================================== -->
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-  <!-- =================================================================
-  HEAD: Contains metadata, fonts, stylesheets, and required libraries.
-  ================================================================== -->
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>New Map Page</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Wildfire Simulation</title>
 
-  <!-- Google Fonts -->
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet" />
 
-  <!-- Main Stylesheet (assumes it's in a parent directory) -->
-  <link rel="stylesheet" href="../style.css"/>
+    <!-- Leaflet -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
-  <!-- D3.js and TopoJSON Libraries (Essential for the map) -->
-  <script src="https://d3js.org/d3.v7.min.js" defer></script>
-  <script src="https://d3js.org/topojson.v3.min.js" defer></script>
+    <!-- Optional GeoTIFF plugin -->
+    <script src="https://unpkg.com/georaster"></script>
+    <script src="https://unpkg.com/georaster-layer-for-leaflet@3.9.0/georaster-layer-for-leaflet.min.js"></script>
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="./base.css" />
+    <link rel="stylesheet" href="./index.css" />
 </head>
+
 <body>
+    <!-- Header -->
+    <header class="toolbar">
+        <span class="toolbar-title">Digital Twin</span>
+    </header>
 
-  <!-- =================================================================
-  HEADER: Provides consistent navigation across all pages.
-  ================================================================== -->
-  <header class="toolbar">
-    <!-- <button class="menu-button" id="menu-toggle">☰</button> -->
-    <!-- This is for a side drawer, not sure if we need it yet. -->
-    <span class="toolbar-title">Digital Twin</span>
-  </header>
+    <!-- Page content -->
+    <main class="content">
+        <section class="map-container">
+            <h2 class="section-title">Wildfire Simulation Map</h2>
+            <div id="map"></div>
+        </section>
+    </main>
 
-  <!-- =================================================================
-  MAIN CONTENT: Holds the primary visualization elements.
-  ================================================================== -->
-  <main id="viz">
+    <!-- Tooltip (optional) -->
+    <div id="tip" class="tooltip"></div>
 
-    <!-- Map Container: The Map.js module will target this SVG element. -->
-    <div class="left-panel">
-      <svg id="map" class="chart" role="img"></svg>
-      <p id="county_selected_text">Select a county on the map.</p>
-    </div>
-
-    <!-- You can add other panels or content here as needed. -->
-    <!-- For a map-only page, this is all you need inside <main>. -->
-
-  </main>
-
-  <!-- =================================================================
-  SHARED ELEMENTS & SCRIPT: Tooltip and the main application entry point.
-  ================================================================== -->
-  
-  <!-- Tooltip Container: Essential for the map's hover functionality. -->
-  <div id="tip" class="tooltip"></div>
-
-  <!-- 
-    Application Entry Point: 
-    This single script loads your entire refactored application. 
-    The Map.js module will automatically find the #map element and render into it.
-  -->
-  <script type="module" src="../js/app.js" defer></script>
-  <script src="nav_control.js" defer></script>
-
+    <!-- App Entry Point -->
+    <script type="module" src="./js/app.js"></script>
 </body>
+
 </html>

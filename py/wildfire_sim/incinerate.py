@@ -4,7 +4,7 @@ import random as rnd
 import networkx as nx
 import logging
 from matplotlib.path import Path
-from wildfire_sim.create_forest import get_point_in_forest
+# from wildfire_sim.create_forest import get_point_in_forest
 
 from config import ROOSEVELT_FOREST_COVER_CSV
 
@@ -244,8 +244,8 @@ def simulate_wind(g, edge_list, max_speed, epsilon, dist_scale):
 # Simulation Runner 
 # =========================================================================
 
-def run_wildfire_simulation(forest_shape=None):
-    logger.info(" Starting wildfire simulation (HTTP mode)")
+def run_wildfire_simulation(ignitLat=None, ignitLon=None, forest_shape=None):
+    logger.info(f"Starting wildfire simulation for ({ignitLat}, {ignitLon})")
     print(f"[DEBUG] Attempting to load dataset from: {CSV_FILE}")
     try:
         df = pd.read_csv(CSV_FILE)
@@ -264,7 +264,7 @@ def run_wildfire_simulation(forest_shape=None):
     # Create a point-in-forest predicate using the helper module; this will
     # use the provided override `forest_shape` if passed, otherwise it will
     # read the latest stored shape from the SSOT in `state.py`.
-    point_in_forest = get_point_in_forest(scale, grid_size, forest_shape)
+    # point_in_forest = get_point_in_forest(scale, grid_size, forest_shape)
 
     if len(df) < NODES:
         nodes_count = len(df)
@@ -295,11 +295,11 @@ def run_wildfire_simulation(forest_shape=None):
 
             # If a forest_shape was provided, force nodes outside it to be 'empty'.
             inside_forest = True
-            if point_in_forest:
-                try:
-                    inside_forest = bool(point_in_forest(current_pos))
-                except Exception:
-                    inside_forest = True
+            # if point_in_forest:
+            #     try:
+            #         inside_forest = bool(point_in_forest(current_pos))
+            #     except Exception:
+            #         inside_forest = True
 
             if not inside_forest:
                 g.add_node(k, threshold_switch=1.0, color='black', num_of_active_neighbors=0,
@@ -341,6 +341,8 @@ def run_wildfire_simulation(forest_shape=None):
         return {"success": False, "error": "No nodes available to ignite"}
 
     ignition_node = rnd.choice(non_burnt_nodes) if IGNITION_POINT == "random" else int(IGNITION_POINT)
+    # if IGNITION_POINT == "random" and lat is not None and lng is not None:
+    #     rnd.seed(int(lat * 1000 + lng * 1000))
     if ignition_node and g.has_node(ignition_node):
         g.nodes[ignition_node]['fire_state'] = 'burning'
         g.nodes[ignition_node]['color'] = 'orange'

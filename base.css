@@ -1,0 +1,162 @@
+/* base.css — global foundation shared by all pages */
+
+:root {
+  --bg: #f9fafc;
+  --card: #fff;
+  --border: #cdd2d9;
+  --txt: #24313f;
+  --accent: #006dba;
+  --radius: 8px;
+  --pad: 20px;
+  --shadow: 0 1px 3px rgba(0,0,0,.06);
+  --bg-start: #cfe2ff;
+  --bg-end: #f0f4ff;
+  --font-ui: "Inter", system-ui, sans-serif;
+}
+
+/* Reset and basic structure */
+* { box-sizing: border-box; }
+html, body {
+  margin: 0;
+  height: 100%;
+  font-family: var(--font-ui);
+  background: linear-gradient(135deg, var(--bg-start), var(--bg-end));
+  color: var(--txt);
+}
+
+/* Typography */
+h1, h2, h3, h4, h5, h6,
+button, .dropbtn, .bar-label {
+  font-family: var(--font-ui);
+  font-weight: 600;
+}
+
+/* Layout */
+header.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  height: 56px;
+  background-color: var(--accent);
+  border-bottom: none;
+  padding: 0 16px;
+  color: white;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+}
+
+.toolbar-title {
+  font-weight: 600;
+  font-size: 18px;
+  user-select: none;
+  color: white;
+}
+
+main#viz {
+  margin-top: 56px;
+  padding: 2rem;
+  display: grid;
+  gap: 2rem;
+}
+
+.left-panel, .right-panel {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Navigation */
+nav.controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-left: 0.5rem;
+}
+
+.nav-btn {
+  background: white;
+  color: var(--txt);
+  border: none;
+  border-radius: var(--radius);
+  padding: 4px 10px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: background-color 0.2s, color 0.2s;
+  text-decoration: none;
+}
+
+.nav-btn:hover {
+  background: #f0f0f0;
+}
+
+.nav-btn.active {
+  background: var(--accent);
+  color: white;
+  pointer-events: none;
+}
+
+/* Buttons */
+button {
+  border: 1px solid var(--border);
+  background: var(--card);
+  border-radius: var(--radius);
+  padding: 4px 10px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+button:hover {
+  background: #e9eef4;
+}
+
+/* Dropdown */
+.dropdown {
+  position: relative;
+  display: inline-block;
+}
+.dropdown-content {
+  display: none;
+  position: absolute;
+  background: #fff;
+  border: 1px solid #ccc;
+  min-width: 12rem;
+  max-height: 15rem;
+  overflow-y: auto;
+  z-index: 1000;
+}
+.dropdown:hover .dropdown-content {
+  display: block;
+}
+.dropdown-content label {
+  display: flex;
+  align-items: center;
+  padding: 0.3rem 0.6rem;
+  cursor: pointer;
+}
+
+/* Charts */
+.chart {
+  background: rgba(255,255,255,0.95);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  width: 100%;
+  height: 100%;
+}
+
+/* Tooltip */
+.tooltip {
+  position: absolute;
+  pointer-events: none;
+  background: var(--accent);
+  color: #fff;
+  border-radius: 6px;
+  font-size: 11px;
+  padding: 6px 8px;
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity .12s;
+}

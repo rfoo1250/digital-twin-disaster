@@ -1,4 +1,5 @@
-/* Main css file */
+/* Legacy css file */
+/* used for CIKM demo, intensive, but not modular so I switched it */
 /* ------- tokens ------- */
 :root{
   --bg:#f9fafc;

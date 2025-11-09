@@ -1,8 +1,18 @@
-pandas>=1.5.0
-numpy>=1.23.0
+# --- Core Server ---
 Flask>=2.3.3
-Flask-CORS>=4.0.0
-scikit-learn>=1.3.0
-joblib>=1.3.2
-networkx>=3.5
-matplotlib>=3.10.6
+Flask-Cors>=4.0.0
+
+# --- Geospatial & Numerical Support ---
+numpy>=1.23.0
+scipy>=1.10.0
+
+# --- GeoJSON / Raster / Vector Processing ---
+geopandas>=0.14.0
+shapely>=2.0.1
+rasterio>=1.3.9
+
+# --- Logging / Utilities ---
+loguru>=0.7.0
+
+# --- Optional (if using topojson or d3 backend generation) ---
+topojson>=1.7
