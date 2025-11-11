@@ -16,7 +16,7 @@ const CONFIG = {
     MAP_DEFAULT_ZOOM: 4,
     MAP_MIN_ZOOM: 3,
     MAP_MAX_ZOOM: 12,
-    MAP_COUNTY_PADDING
+    MAP_COUNTY_PADDING: [20, 20], // px padding when fitting county bounds
 
     // ------------------ MAP PROVIDERS ------------------ //
     TILE_LAYER_URL: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',

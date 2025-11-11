@@ -1,5 +1,5 @@
 // simple toast for ux feedback on lasso
-import CONFIG from '../../config.js';
+import CONFIG from '../config.js';
 const TOAST_SHOW_TIME = CONFIG.TOAST_SHOW_TIME || 3000;
 
 export function showToast(msg, isError = false) {
