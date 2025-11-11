@@ -4,16 +4,6 @@ import CONFIG from '../../config.js';
 import { getCountyGeoData, loadGEEClippedLayer, getGEEUrl } from '../services/DataManager.js';
 import { fipsToState } from '../../utils/constants.js';
 import { showToast } from '../../utils/toast.js';
-// import GeoRasterLayer from "georaster-layer-for-leaflet";
-// import parseGeoraster from "georaster";
-
-const parseGeoraster = require("georaster");
-fetch(url)
-    .then(response => response.arrayBuffer())
-    .then(parseGeoraster)
-    .then(georaster => {
-        console.log("georaster:", georaster);
-    });
 
 /**
  * I will handle the double click function to zoom in on a county when clicked myself
