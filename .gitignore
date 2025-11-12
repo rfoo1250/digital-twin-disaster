@@ -2,6 +2,13 @@
 .venv/
 py310_venv/
 
+# Node modules
+node_modules/
+
+# Vite
+.vite/
+dist/
+
 # Data files
 merged_file_unique.csv
 # *.xlsx    # Uncomment if you want to ignore all Excel files
@@ -18,3 +25,6 @@ data_cleaning.py
 __pycache__/
 old_*
 .resources.md
+
+# VSCode settings
+.vscode/
