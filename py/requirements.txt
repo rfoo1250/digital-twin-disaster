@@ -2,8 +2,9 @@
 Flask>=2.3.3
 Flask-Cors>=4.0.0
 
-# --- Earth Engine ---
+# --- Google ---
 earthengine-api>=1.6.15
+google-cloud-storage>=3.5.0
 
 # --- Geospatial & Numerical Support ---
 numpy>=1.23.0

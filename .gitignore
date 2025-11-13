@@ -1,5 +1,6 @@
 # Python virtual environments
 .venv/
+venv/
 py310_venv/
 
 # Node modules
@@ -20,6 +21,10 @@ simulation_results/
 check_fips.py
 data_cleaning.py
 .DS_Store
+
+# Secrets
+secrets/
+.env
 
 # Miscellaneous
 __pycache__/
