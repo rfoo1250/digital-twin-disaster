@@ -11,6 +11,10 @@ DEFAULT_HOST = "0.0.0.0"
 DEFAULT_PORT = 5000
 DEBUG_MODE = True
 
+# ------------------ GOOGLE CONFIG ------------------ #
+GCS_BUCKET_NAME = "dmml-gee-exports"
+GCS_FOREST_EXPORTS_FOLDER = "forest_exports"
+
 # ------------------ API CONFIG ------------------ #
 # Central prefix for all API routes
 API_PREFIX = "/api"
@@ -22,8 +26,11 @@ PROJECT_ROOT = os.path.abspath(os.path.join(BASE_DIR, os.pardir))
 # Directory where wildfire outputs (GeoJSON / GeoTIFFs) can be saved
 OUTPUT_BASE = os.path.join(PROJECT_ROOT, "wildfire_output")
 
-# Directory to store temporary GEE inputs (e.g., downloaded GeoTIFFs)
-SIM_INPUT_DIR = os.path.join(PROJECT_ROOT, "simulation_inputs")
+# Directory to store GEE GeoJSON exports
+FOREST_GEOJSON_DIR = os.path.join(PROJECT_ROOT, "data", "shared", "geojson")
+
+# Directory to store GEE inputs (e.g., downloaded GeoTIFFs)
+GEOTIFF_DIR = os.path.join(PROJECT_ROOT, "data", "shared", "geotiff")
 
 # Primary dataset for wildfire simulation (forest cover CSV)
 ROOSEVELT_FOREST_COVER_CSV = os.path.join(PROJECT_ROOT, "covtype.csv")
