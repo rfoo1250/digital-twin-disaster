@@ -17,6 +17,9 @@ cd Disaster_bench_dashboard
 pip install -r py/requirements.txt
 ```
 
+TODO: add Google json key, need do listed in [Update README #14](https://github.com/rfoo1250/digital-twin-disaster-proto/issues/14)
+
+
 ### 3. Run the Flask app as a backend
 
 ```bash

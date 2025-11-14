@@ -11,6 +11,7 @@ node_modules/
 dist/
 
 # Data files
+data/
 merged_file_unique.csv
 # *.xlsx    # Uncomment if you want to ignore all Excel files
 
