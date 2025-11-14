@@ -1,9 +1,8 @@
-"""
-ARCHIVED MODULE
-create_forest.py – retained for historical reference.
-This module is no longer imported anywhere in the current wildfire simulation.
-"""
+"""Forest shape utilities: build point-in-polygon predicate from GeoJSON/list/shapely."""
+import logging
 from matplotlib.path import Path
+
+logger = logging.getLogger(__name__)
 
 # Import SSOT `state.py` with a robust fallback for different run contexts
 try:
@@ -14,19 +13,14 @@ except Exception:
         from .. import state as app_state
     except Exception:
         # fallback: local import (works if PYTHONPATH or CWD contains py/)
-        try:
-            import state as app_state
-        except ImportError:
-            # If state isn't available, create a dummy object for get_forest_shape
-            class DummyState:
-                def get_forest_shape(self):
-                    return None
-            app_state = DummyState()
+        import state as app_state
 
 
 def make_point_in_forest(shape_obj, scale, grid_size):
     """Return predicate(pt)->bool testing whether pt is inside shape_obj (supports GeoJSON/list/shapely)."""
+    logger.info("make_point_in_forest called.")
     if not shape_obj:
+        logger.warning("No shape object provided.")
         return None
 
     # Feature wrapper
@@ -136,5 +130,6 @@ def make_point_in_forest(shape_obj, scale, grid_size):
 
 def get_point_in_forest(scale, grid_size, override_shape=None):
     """Return predicate from override_shape or latest stored shape in state."""
+    logger.info("get_point_in_forest called.")
     shape = override_shape if override_shape is not None else app_state.get_forest_shape()
     return make_point_in_forest(shape, scale, grid_size)

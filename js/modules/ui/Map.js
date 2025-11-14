@@ -188,7 +188,10 @@ function setupButtons() {
                     console.log(`[INFO] Forest data is ready at: ${filePath}. Starting simulation...`);
                     showToast('Forest data is ready. Starting simulation...', false); // false = not an error
 
-                    runWildfireSimulation(getCurrentCountyKey());
+                    const response = runWildfireSimulation(getCurrentCountyKey());
+                    if (response) {
+                        console.log('[INFO] Wildfire simulation response:', response);
+                    }
 
                     // --- As requested, placeholder for simulation start ---
                     // startActualSimulation(filePath); 
