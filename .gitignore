@@ -12,6 +12,7 @@ dist/
 
 # Data files
 data/
+wildfire_output/
 merged_file_unique.csv
 # *.xlsx    # Uncomment if you want to ignore all Excel files
 

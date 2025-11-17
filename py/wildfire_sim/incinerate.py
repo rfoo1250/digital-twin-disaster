@@ -11,10 +11,11 @@ import matplotlib
 matplotlib.use('Agg')
 from matplotlib.path import Path
 from matplotlib.colors import ListedColormap
-import create_forest  # <-- Import the new file
+# import create_forest
+from wildfire_sim.create_forest import get_point_in_forest
 
 # =========================================================================
-# User-configurable Parameters (from incinerate_old.py)
+# User-configurable Parameters
 # =========================================================================
 CSV_FILE = ROOSEVELT_FOREST_COVER_CSV
 NODES = 50*50  # 2500
@@ -39,7 +40,7 @@ CUSTOM_CMAP = ListedColormap([
     (1.0, 1.0, 1.0),  # empty (white)
     (0.0, 0.6, 0.0),  # not_burnt (green)
     (1.0, 0.5, 0.0),  # burning (orange)
-    (0.4, 0.2, 0.0)   # burnt (dark brown)
+    (0.8, 0.0, 0.0)   # burnt (red)
 ])
 STATE_TO_INT = {
     'empty': 0,
@@ -47,14 +48,6 @@ STATE_TO_INT = {
     'burning': 2,
     'burnt': 3
 }
-
-# =========================================================================
-# GeoJSON/Shapefile Helper
-# =========================================================================
-
-# This function is now REPLACED by the one in create_forest.py
-# def get_point_in_forest_predicate(forest_shape):
-#    ... (removed) ...
 
 # =========================================================================
 # Core Simulation Functions (from incinerate_old.py)
@@ -339,10 +332,17 @@ def run_wildfire_simulation(forest_shape=None):
     pos_dict = {}
     aspect_dict = {'N': -0.063, 'NE':0.349, 'E':0.686, 'SE':0.557, 'S':0.039, 'SW':-0.155, 'W':-0.252, 'NW':-0.171}
 
-    # Get the predicate function for checking points against the shape
-    # <-- UPDATED to use create_forest.py
-    # This function handles Lon/Lat projection
-    point_in_forest = create_forest.make_point_in_forest(forest_shape, scale, grid_size)
+    # Create a point-in-forest predicate using the helper module; this will
+    # use the provided override `forest_shape` if passed, otherwise it will
+    # read the latest stored shape from the SSOT in `state.py`.
+    point_in_forest = get_point_in_forest(scale, grid_size, forest_shape)
+    if forest_shape and not point_in_forest:
+        logger.error("Invalid GeoJSON: 'forest_shape' was provided but could not be processed.")
+        logger.error("Please provide a valid GeoJSON Feature or Geometry with type 'Polygon' or 'MultiPolygon'.")
+        return {
+            "success": False,
+            "error": "Invalid GeoJSON structure. Must be a Polygon or MultiPolygon Feature/Geometry."
+        }
 
     if len(df) < NODES:
         nodes_count = len(df)
