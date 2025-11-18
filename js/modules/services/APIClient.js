@@ -9,24 +9,36 @@ import CONFIG from '../../config.js';
 // const LOCAL_API_BASE_URL = 'http://127.0.0.1:5000';
 
 /**
- * Run wildfire simulation.
- * Sends ignition coordinates to the backend and returns simulation results.
- * @param {{ lat: number, lng: number }} params - Ignition point coordinates
- * @returns {Promise<Object|null>} - Parsed wildfire simulation response
- */
-async function runWildfireSimulation(countyKey) {
-    const wildfireSimEndpoint = `${CONFIG.API_BASE_URL}/simulate_wildfire?countyKey=${countyKey}`;
-    // `${CONFIG.API_BASE_URL}/check-status/${taskId}?countyKey=${countyKey}`
+* Run wildfire simulation based on a local GeoTIFF file.
+* Expects countyKey, igniPointLat, and igniPointLon as query params.
+* @param {string} countyKey - County key identifier
+* @param {number} igniPointLat - Ignition latitude
+* @param {number} igniPointLon - Ignition longitude
+* @returns {Promise<Object|null>} - Parsed wildfire simulation response
+*/
+async function runWildfireSimulation(countyKey, igniPointLat, igniPointLon) {
+    const query = new URLSearchParams({ countyKey, igniPointLat, igniPointLon }).toString();
+    const wildfireSimEndpoint = `${CONFIG.API_BASE_URL}/simulate_wildfire?${query}`;
+
+
     try {
-        console.log(`[INFO] Starting wildfire sim for countyKey=${countyKey}`);
+        console.log(`[INFO] Starting wildfire sim for countyKey=${countyKey}, lat=${igniPointLat}, lon=${igniPointLon}`);
         const response = await fetch(wildfireSimEndpoint, {
             method: 'GET',
             headers: { 'Content-Type': 'application/json' },
         });
 
+
         if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
 
-        return await response.json();
+
+        const data = await response.json();
+        if (data.success) {
+            console.log(`[INFO] Simulation complete for ${countyKey}:`, data.output_dir);
+        } else {
+            console.warn('[WARN] Simulation returned with errors:', data.message);
+        }
+        return data;
     } catch (error) {
         console.error('[API Error] Wildfire Simulation:', error);
         alert('Error running wildfire simulation. See console for details.');

@@ -7,9 +7,8 @@
 
 const CONFIG = {
     // ------------------ API ------------------ //
-    API_BASE_URL: 'http://127.0.0.1:5000/api', // Flask backend root
-    // GEE_LAYER_ENDPOINT: '/get_layer',
-    // WILDFIRE_SIM_ENDPOINT: '/simulate',
+    // API_BASE_URL: 'http://127.0.0.1:5000/api', // Flask backend root
+    API_BASE_URL: '/api', // Use proxy for local dev; production should set full URL
 
     // ------------------ MAP ------------------ //
     MAP_DEFAULT_CENTER: [37.8, -96.0],  // U.S. center
@@ -36,9 +35,8 @@ const CONFIG = {
     TOAST_SHOW_TIME: 3000, // ms
 
     // ------------------ DATA ------------------ //
-    COUNTY_GEOJSON_URL:
-        'https://raw.githubusercontent.com/plotly/datasets/master/geojson-counties-fips.json',
-    GEE_TIFF_BASE_URL: '/data/geotiffs/',
+    COUNTY_GEOJSON_URL: 'https://raw.githubusercontent.com/plotly/datasets/master/geojson-counties-fips.json',
+    GEOTIFF_URL: '/data/shared/geotiffs/',
 
     // ------------------ ENVIRONMENTS ------------------ //
     // ENV: import.meta?.env?.MODE || 'development',
