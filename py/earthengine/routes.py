@@ -9,7 +9,7 @@ import logging
 import os
 import re # For sanitizing
 from config import (
-    FOREST_GEOJSON_DIR,
+    GEOJSON_DIR,
     GCS_FOREST_EXPORTS_FOLDER,
     GCS_BUCKET_NAME
 )
@@ -74,7 +74,7 @@ def start_export_task():
         
         # Create the unique, predictable key
         filename_key = f"{sanitize_filename(county_name)}_{sanitize_filename(state_abbr)}"
-        local_path = f"{FOREST_GEOJSON_DIR}/{filename_key}.geojson"
+        local_path = f"{GEOJSON_DIR}/{filename_key}.geojson"
 
         bucket_name = GCS_BUCKET_NAME
         if not bucket_name:
@@ -139,7 +139,7 @@ def check_export_status(task_id):
             gcs_uri = f"gs://{GCS_BUCKET_NAME}/{GCS_FOREST_EXPORTS_FOLDER}/{county_key}.geojson"
             logger.info(f"GCS URI for task {task_id}: {gcs_uri}")
 
-            local_path = f"{FOREST_GEOJSON_DIR}/{county_key}.geojson"
+            local_path = f"{GEOJSON_DIR}/{county_key}.geojson"
             logger.info(f"Task {task_id} is DONE. Downloading {gcs_uri} to {local_path}...")
 
             try:

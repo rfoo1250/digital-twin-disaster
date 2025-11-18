@@ -27,7 +27,7 @@ PROJECT_ROOT = os.path.abspath(os.path.join(BASE_DIR, os.pardir))
 OUTPUT_BASE = os.path.join(PROJECT_ROOT, "wildfire_output")
 
 # Directory to store GEE GeoJSON exports
-FOREST_GEOJSON_DIR = os.path.join(PROJECT_ROOT, "data", "shared", "geojson")
+GEOJSON_DIR = os.path.join(PROJECT_ROOT, "data", "shared", "geojson")
 
 # Directory to store GEE inputs (e.g., downloaded GeoTIFFs)
 GEOTIFF_DIR = os.path.join(PROJECT_ROOT, "data", "shared", "geotiff")

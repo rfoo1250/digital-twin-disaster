@@ -4,12 +4,16 @@ routes.py
 Defines and registers all API blueprints for the application.
 """
 
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, send_from_directory, abort
 import logging
 import traceback
 import os
 
-from config import API_PREFIX, BASE_DIR
+from config import (
+    API_PREFIX, 
+    BASE_DIR,
+    GEOTIFF_DIR
+)
 from wildfire_sim.sca import run_geotiff_simulation
 
 logger = logging.getLogger(__name__)
@@ -22,6 +26,28 @@ def health_check():
     """Health check endpoint."""
     return jsonify({'status': 'healthy', 'message': 'Wildfire API is running'})
 
+@api_bp.route('/data/shared/geotiffs/<path:filename>', methods=['GET'])
+def serve_geotiff(filename):
+    """
+    Serve static GeoTIFF files from the configured GEOTIFF_DIR.
+    Allows the frontend to access shared forest rasters for demos.
+    """
+    try:
+        full_path = os.path.join(GEOTIFF_DIR, filename)
+        if not os.path.exists(full_path):
+            logger.warning(f"GeoTIFF not found: {full_path}")
+            abort(404)
+
+        logger.info(f"Serving GeoTIFF file: {full_path}")
+        return send_from_directory(GEOTIFF_DIR, filename)
+
+    except Exception as e:
+        logger.error(f"Failed to serve GeoTIFF {filename}: {e}")
+        return jsonify({
+            "error": "Failed to serve GeoTIFF",
+            "message": str(e)
+        }), 500
+        
 @api_bp.route('/simulate_wildfire', methods=['GET'])
 def simulate_wildfire():
     """
