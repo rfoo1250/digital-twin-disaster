@@ -24,8 +24,7 @@ const CONFIG = {
 
     // MapTiler keys (used in WildfireMapLayer)
     MAPTILER_API_KEY: 'JpoaHlHUOI1nu8GvzUc0',
-    MAPTILER_SATELLITE_URL:
-        'https://api.maptiler.com/tiles/satellite-v2/{z}/{x}/{y}.jpg?key=JpoaHlHUOI1nu8GvzUc0',
+    MAPTILER_SATELLITE_URL: 'https://api.maptiler.com/tiles/satellite-v2/{z}/{x}/{y}.jpg?key=JpoaHlHUOI1nu8GvzUc0',
 
     // ------------------ UI & SIMULATION ------------------ //
     DEBUG_MODE: true,
@@ -36,9 +35,8 @@ const CONFIG = {
     TOAST_SHOW_TIME: 3000, // ms
 
     // ------------------ DATA ------------------ //
-    COUNTY_GEOJSON_URL:
-        'https://raw.githubusercontent.com/plotly/datasets/master/geojson-counties-fips.json',
-    GEE_TIFF_BASE_URL: '/data/geotiffs/',
+    COUNTY_GEOJSON_URL: '/geojson-counties-fips.json',
+    GEOTIFF_URL: '/data/shared/geotiffs/',
 
     // ------------------ ENVIRONMENTS ------------------ //
     // ENV: import.meta?.env?.MODE || 'development',

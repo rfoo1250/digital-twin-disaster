@@ -2,6 +2,8 @@
 .venv/
 venv/
 py310_venv/
+nodeenv/
+nodevenv/
 
 # Node modules
 node_modules/
@@ -31,6 +33,7 @@ secrets/
 # Miscellaneous
 __pycache__/
 old_*
+test_*
 .resources.md
 
 # VSCode settings

@@ -22,18 +22,26 @@ async function loadAllData() {
     }
 }
 
-async function loadWildfireSimulation(params) {
+async function loadWildfireSimulation({ countyKey, igniPointLat, igniPointLon }) {
     try {
-        const response = await runWildfireSimulation(params);
+        const response = await runWildfireSimulation(countyKey, igniPointLat, igniPointLon);
         if (!response) {
             console.warn('[WARN] No wildfire simulation response received.');
             return;
         }
 
-        setState('wildfireData', response);
-        console.log('[INFO] Wildfire simulation data stored in state.');
+
+        if (response.success && response.output_dir) {
+            setState('wildfireOutputDir', response.output_dir);
+            console.log(`[INFO] Wildfire simulation completed for ${countyKey}. Output directory: ${response.output_dir}`);
+            showToast(`Wildfire simulation complete. Output saved to ${response.output_dir}`, false);
+        } else {
+            console.warn('[WARN] Wildfire simulation returned an error or missing output_dir:', response.message);
+            showToast(`Wildfire simulation error: ${response.message}`, true);
+        }
     } catch (error) {
         console.error('[ERROR] DataManager: Failed to load wildfire simulation.', error);
+        showToast('Failed to run wildfire simulation. See console for details.', true);
     }
 }
 
@@ -69,33 +77,33 @@ async function startForestDataExport(geometry) {
         }
         // Optimistically set a pending state
         setState('currentExportTask', { id: null, countyKey: countyKey, status: 'PENDING', localPath: null });
-        
-        const taskResponse = await startForestExport(geometry, countyName, stateAbbr); 
-        
+
+        const taskResponse = await startForestExport(geometry, countyName, stateAbbr);
+
         if (!taskResponse || !taskResponse.status) {
-             throw new Error("Invalid response from start-export API.");
+            throw new Error("Invalid response from start-export API.");
         }
 
         if (taskResponse.status === 'COMPLETED') {
             // CACHE HIT!
             console.log('[INFO] DataManager: Cache hit. File already exists at:', taskResponse.local_path);
             setState('currentGEEForestGeoJSON', taskResponse.local_path);
-            setState('currentExportTask', { 
+            setState('currentExportTask', {
                 id: null, // No GEE task ID needed
                 countyKey: taskResponse.filename_key,
-                status: 'COMPLETED', 
-                localPath: taskResponse.local_path 
+                status: 'COMPLETED',
+                localPath: taskResponse.local_path
             });
             showToast("Cached forest data loaded.", false);
 
         } else if (taskResponse.status === 'PROCESSING') {
             // CACHE MISS. Task is running.
             // This is where we link the GEE ID to our county key
-            setState('currentExportTask', { 
+            setState('currentExportTask', {
                 id: taskResponse.task_id, // <-- GEE's ID (e.g., P7NDW...)
                 countyKey: taskResponse.filename_key, // <-- Our key (e.g., Maricopa_AZ)
-                status: 'PROCESSING', 
-                localPath: null 
+                status: 'PROCESSING',
+                localPath: null
             });
             console.log(`[INFO] DataManager: Forest export started. Task ID: ${taskResponse.task_id} for ${taskResponse.filename_key}`);
             alert("Starting forest data export. This may take several minutes.");
@@ -120,7 +128,7 @@ async function checkForestDataStatus() {
         console.warn('[WARN] No export task is active. Cannot check status.');
         return 'NONE';
     }
-    
+
     // If it's already done, just return
     if (task.status === 'COMPLETED') {
         return 'COMPLETED';
@@ -131,12 +139,12 @@ async function checkForestDataStatus() {
         console.error('[ERROR] Task is processing but has no GEE task ID to poll.');
         return 'FAILED';
     }
-    
+
     console.log(`[INFO] DataManager: Checking status for task ${task.id} (${task.countyKey})`);
-    
+
     try {
         const statusResponse = await checkExportStatus(task.id, task.countyKey); // Poll using GEE's ID
-        
+
         if (!statusResponse) throw new Error("No response from status check API.");
 
         switch (statusResponse.status) {
@@ -145,13 +153,13 @@ async function checkForestDataStatus() {
                 // Save the final file path
                 setState('currentGEEForestGeoJSON', statusResponse.local_path);
                 // Update the task state to COMPLETED
-                setState('currentExportTask', { 
-                    ...task, 
-                    status: 'COMPLETED', 
-                    localPath: statusResponse.local_path 
+                setState('currentExportTask', {
+                    ...task,
+                    status: 'COMPLETED',
+                    localPath: statusResponse.local_path
                 });
                 return 'COMPLETED';
-            
+
             case 'PROCESSING':
                 console.log('[INFO] DataManager: Export is still processing.');
                 setState('currentExportTask', { ...task, status: 'PROCESSING' });
@@ -161,7 +169,7 @@ async function checkForestDataStatus() {
                 console.error('[ERROR] DataManager: Forest export task failed:', statusResponse.error);
                 setState('currentExportTask', { ...task, status: 'FAILED' });
                 return 'FAILED';
-            
+
             default:
                 console.warn('[WARN] DataManager: Unknown task status:', statusResponse.status);
                 return 'UNKNOWN';

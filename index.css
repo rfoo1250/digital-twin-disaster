@@ -153,6 +153,11 @@ main#main {
     margin-right: 0.4rem;
 }
 
+.action-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 /* Tooltip */
 .tooltip {
     z-index: 999;

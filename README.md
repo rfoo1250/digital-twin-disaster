@@ -1,6 +1,10 @@
 # Digital Twin for Disasters
 
 🚧 CHANGES NEEDED 🚧
+npm init -y for vite usage
+new package and package-lock
+new users should have node or a nodeenv (from python's pip)
+`npm install` for frontned setup
 
 ## Running the Demo Locally
 
