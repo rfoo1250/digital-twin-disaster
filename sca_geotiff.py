@@ -25,7 +25,7 @@ ENABLE_CROP = True  # Set to True to save only a window around the ignition poin
 CROP_BUFFER = 100   # Pixels to include around the ignition point (e.g., 500px buffer)
 
 # --- Ignition Settings  ---
-IGNITION_MODE = "random"  # "random" or "user_set"
+IGNITION_MODE = "user_set"  # "random" or "user_set"
 USER_SET_COORDS = (100, 150) # (y, x) pixel coordinate. Only used if mode is "user_set"
 
 # --- Stochastic (Probability) Parameters ---

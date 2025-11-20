@@ -35,6 +35,7 @@ async function loadWildfireSimulation({ countyKey, igniPointLat, igniPointLon })
             setState('wildfireOutputDir', response.output_dir);
             console.log(`[INFO] Wildfire simulation completed for ${countyKey}. Output directory: ${response.output_dir}`);
             showToast(`Wildfire simulation complete. Output saved to ${response.output_dir}`, false);
+            return response;
         } else {
             console.warn('[WARN] Wildfire simulation returned an error or missing output_dir:', response.message);
             showToast(`Wildfire simulation error: ${response.message}`, true);

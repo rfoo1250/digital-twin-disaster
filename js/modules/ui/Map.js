@@ -15,11 +15,11 @@ import {
     setCurrentCountyNameAndStateAbbr,
     getCurrentCountyKey
 } from '../services/DataManager.js';
-import { runWildfireSimulation } from '../services/APIClient.js';
 import { fipsToState } from '../../utils/constants.js';
 import { showToast } from '../../utils/toast.js';
 
 let isFocused = false;
+let geotiffLoaded = false;
 let isSettingIgnitionPoint = false;
 let map, countyLayer, forestLayer;
 let selectedCounty = null;
@@ -111,7 +111,7 @@ async function handleCountySelectionForGEE(feature) {
         const geotiffUrl = `${CONFIG.API_BASE_URL}${CONFIG.GEOTIFF_URL}ForestCover_${countyKey}_2024.tif`;
         console.log(`[INFO] Checking for local GeoTIFF at: ${geotiffUrl}`);
         // Try to load local GeoTIFF first
-        let geotiffLoaded = false;
+        // TODO: handle geotiffLoaded flags
         try {
             const headResponse = await fetch(geotiffUrl, { method: 'HEAD' });
             if (headResponse.ok) {
@@ -353,29 +353,112 @@ function setupButtons() {
         startWildfireSimBtn.addEventListener('click', async () => {
             if (startWildfireSimBtn.disabled) return;
 
-            console.log('[INFO] "Start Simulation" clicked. Checking forest data status...');
-            const status = await checkForestDataStatus();
-
-            switch (status) {
-                case 'COMPLETED':
-                    const filePath = getCurrentGEEForestGeoJSON();
-                    console.log(`[INFO] Forest data is ready at: ${filePath}. Starting simulation...`);
-                    showToast('Forest data is ready. Starting simulation...', false);
-                    const response = runWildfireSimulation(getCurrentCountyKey());
-                    if (response) console.log('[INFO] Wildfire simulation response:', response);
-                    break;
-                case 'PROCESSING':
-                    showToast('Forest data is still being processed. Please wait.', true);
-                    break;
-                case 'FAILED':
-                    showToast('Forest data export failed. Please try again.', true);
-                    break;
-                case 'NONE':
-                    showToast('Please select and focus on a county to prepare data first.', true);
-                    break;
-                default:
-                    showToast('An unknown error occurred. Check console.', true);
+            // Ensure a county is selected
+            if (!selectedCounty) {
+                showToast('Please select a county first.', true);
+                return;
             }
+
+            // Ensure forest layer (GeoTIFF or GEE) is loaded
+            if (!geotiffLoaded && !forestLayer) {
+                showToast('Forest data not loaded yet. Enable the forest layer first.', true);
+                return;
+            }
+
+            // Ensure ignition point is set
+            const ignition = JSON.parse(localStorage.getItem('ignitionPoint'));
+            if (!ignition || !ignition.lat || !ignition.lng) {
+                showToast('Please set an ignition point before running the simulation.', true);
+                return;
+            }
+
+            // // Check if forest data export is complete
+            // const status = await checkForestDataStatus();
+            // if (status === 'PROCESSING') {
+            //     showToast('Forest data is still being processed. Please wait.', true);
+            //     return;
+            // } else if (status === 'FAILED') {
+            //     showToast('Forest data export failed. Please try again.', true);
+            //     return;
+            // } else if (status === 'NONE') {
+            //     showToast('No forest data export found. Please prepare forest data first.', true);
+            //     return;
+            // }
+
+            // At this point, all preconditions are satisfied
+            const countyKey = getCurrentCountyKey();
+            if (!countyKey) {
+                showToast('Missing county key. Please select a valid county.', true);
+                return;
+            }
+
+            showToast('Running wildfire simulation...', false);
+            console.log(`[INFO] Starting wildfire simulation for ${countyKey}`);
+
+            try {
+                const response = await loadWildfireSimulation({
+                    countyKey,
+                    igniPointLat: ignition.lat,
+                    igniPointLon: ignition.lng
+                });
+
+                
+                if (response && response.success && response.output_dir) {
+                    const outputDir = response.output_dir;
+                    console.log(`[INFO] Wildfire simulation output at: ${outputDir}`);
+
+                    // Build raster URLs like: /data/shared/geotiffs/wildfire_output/sim_run_.../wildfire_t_000.tif
+                    const baseUrl = `${CONFIG.API_BASE_URL}/${outputDir}`;
+                    let timestep = 0;
+
+                    async function showNextTimestep() {
+                        const rasterUrl = `${baseUrl}/wildfire_t_${timestep.toString().padStart(3, '0')}.tif`;
+
+                        try {
+                            const headResp = await fetch(rasterUrl, { method: 'HEAD' });
+                            if (!headResp.ok) {
+                                console.log(`[INFO] No more rasters found after t=${timestep - 1}`);
+                                showToast('Wildfire simulation visualization complete.');
+                                return;
+                            }
+
+                            const resp = await fetch(rasterUrl);
+                            const arrayBuffer = await resp.arrayBuffer();
+                            const geoRaster = await parseGeoraster(arrayBuffer);
+
+                            if (forestLayer) map.removeLayer(forestLayer);
+
+                            forestLayer = new GeoRasterLayer({
+                                georaster: geoRaster,
+                                pane: 'forestPane',
+                                opacity: 1.0,
+                                resolution: 128,
+                                pixelValuesToColorFn: function(values) {
+                                    const val = values[0];
+                                    switch (val) {
+                                        case 1: return 'rgba(0,150,0,0.9)';   // forest (green)
+                                        case 2: return 'rgba(255,165,0,0.9)'; // burning (yellow-orange)
+                                        case 3: return 'rgba(255,0,0,0.9)';   // burnt (red)
+                                        default: return 'rgba(0,0,0,0)';      // transparent
+                                    }
+                                }
+                            }).addTo(map);
+
+                            console.log(`[INFO] Displaying timestep ${timestep}`);
+                            timestep++;
+                            setTimeout(showNextTimestep, 1000); // 1 second per frame
+                        } catch (err) {
+                            console.error('[ERROR] Failed to load wildfire raster:', err);
+                        }
+                    }
+
+                    showNextTimestep();
+                }
+            } catch (err) {
+                console.error('[SIMULATION ERROR]', err);
+                showToast('Wildfire simulation failed. Check console for details.', true);
+            }
+
         });
     }
 
