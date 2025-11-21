@@ -12,7 +12,8 @@ import os
 from config import (
     API_PREFIX, 
     BASE_DIR,
-    GEOTIFF_DIR
+    GEOTIFF_DIR,
+    WILDFIRE_OUTPUT_BASE
 )
 from wildfire_sim.sca import run_geotiff_simulation
 
@@ -26,6 +27,7 @@ def health_check():
     """Health check endpoint."""
     return jsonify({'status': 'healthy', 'message': 'Wildfire API is running'})
 
+# serve static GeoTIFF files
 @api_bp.route('/data/shared/geotiffs/<path:filename>', methods=['GET'])
 def serve_geotiff(filename):
     """
@@ -81,12 +83,15 @@ def simulate_wildfire():
         # Run sim function here
         output_dir_absolute = run_geotiff_simulation(county_key, igni_lat, igni_lon)
 
-        # 4. Format the output path to be relative to the project's BASE_DIR
-        #    This is what you requested, matching the 'incinerate.py' style.
-        relative_output_dir = os.path.relpath(output_dir_absolute, BASE_DIR)
-        
-        # Clean up path (e.g., '..\wildfire_output\sim_run' -> 'wildfire_output/sim_run')
-        final_output_path = os.path.normpath(relative_output_dir).replace(os.path.sep, '/')
+        # 4. Format the output path
+        wildfire_root = os.path.join(BASE_DIR, "wildfire_output")
+
+        if output_dir_absolute.startswith(wildfire_root):
+            relative_part = os.path.relpath(output_dir_absolute, wildfire_root)
+            final_output_path = f"wildfire_output/{relative_part}".replace(os.path.sep, "/")
+        else:
+            # Fallback in rare case output is outside expected dir
+            final_output_path = f"wildfire_output/{os.path.basename(output_dir_absolute)}"
 
         # 5. Return success response
         return jsonify({
@@ -120,6 +125,43 @@ def simulate_wildfire():
             'traceback': traceback.format_exc()
         }), 500
 
+# serve raster geotiff files for wildfire simulation
+@api_bp.route('/wildfire_output/<path:subpath>', methods=['GET'])
+def serve_wildfire_output(subpath):
+    """
+    Serves simulation output rasters from wildfire_output/<sim_run_*> directories.
+    Example:
+        /wildfire_output/sim_run_Door_WI_20251121_120635/wildfire_t_000.tif
+    """
+    try:
+        # Base directory for all wildfire simulations
+        # output_root = os.path.join(BASE_DIR, 'wildfire_output')
+
+        # Resolve the full absolute path to the requested file
+        # full_path = os.path.join(WILDFIRE_OUTPUT_BASE, subpath)
+        full_path = os.path.normpath(os.path.join(WILDFIRE_OUTPUT_BASE, subpath))
+        # Prevent directory traversal attacks
+        if not os.path.abspath(full_path).startswith(os.path.abspath(WILDFIRE_OUTPUT_BASE)):
+            logger.warning(f"Attempted access outside wildfire_output: {full_path}")
+            abort(403)
+
+        if not os.path.exists(full_path):
+            logger.warning(f"Requested wildfire raster not found: {full_path}")
+            abort(404)
+
+        # Extract parent directory and filename for send_from_directory
+        directory, filename = os.path.split(full_path)
+        logger.info(f"Serving wildfire output file: {full_path}")
+
+        return send_from_directory(directory, filename)
+    except Exception as e:
+        logger.error(f"Error serving wildfire output: {e}")
+        return jsonify({
+            "error": "Failed to serve wildfire raster",
+            "message": str(e)
+        }), 500
+
+        
 # --- CENTRAL REGISTRATION FUNCTION ---
 def register_routes(app):
     """Registers all API blueprints with the Flask app."""

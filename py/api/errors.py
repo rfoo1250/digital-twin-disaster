@@ -1,4 +1,4 @@
-from flask import jsonify
+from flask import jsonify, request
 import logging
 
 def register_error_handlers(app):
@@ -6,7 +6,7 @@ def register_error_handlers(app):
 
     @app.errorhandler(404)
     def not_found(error):
-        logger.warning("404 - Endpoint not found")
+        logger.warning(f"404 - Endpoint not found, path: {request.path}")
         return jsonify({'error': 'Endpoint not found'}), 404
 
     @app.errorhandler(405)

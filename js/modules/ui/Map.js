@@ -35,13 +35,15 @@ function init() {
     // Create custom panes for controlled layer ordering
     map.createPane('tilePane');     // default base tile pane
     map.createPane('forestPane');   // GeoTIFF raster layer pane
+    map.createPane('wildfireSimPane'); // wildfire simulation layer pane
     map.createPane('overlayPane');  // vector polygons (default)
     map.createPane('markerPane');   // markers on top
 
     // Set z-index order (lower = below)
     map.getPane('tilePane').style.zIndex = 200;
     map.getPane('forestPane').style.zIndex = 300;
-    map.getPane('overlayPane').style.zIndex = 400;
+    map.getPane('wildfireSimPane').style.zIndex = 400;
+    map.getPane('overlayPane').style.zIndex = 500;
     map.getPane('markerPane').style.zIndex = 600;
 
     L.tileLayer(CONFIG.TILE_LAYER_URL, {
@@ -392,7 +394,7 @@ function setupButtons() {
                 return;
             }
 
-            showToast('Running wildfire simulation...', false);
+            showToast('Running wildfire simulation...');
             console.log(`[INFO] Starting wildfire simulation for ${countyKey}`);
 
             try {
@@ -407,18 +409,26 @@ function setupButtons() {
                     const outputDir = response.output_dir;
                     console.log(`[INFO] Wildfire simulation output at: ${outputDir}`);
 
+                    // HERE
+                    // FIXME: fix the url stuff, still unfound, end at 000
                     // Build raster URLs like: /data/shared/geotiffs/wildfire_output/sim_run_.../wildfire_t_000.tif
                     const baseUrl = `${CONFIG.API_BASE_URL}/${outputDir}`;
                     let timestep = 0;
-
+                    console.log('[INFO] baseUrl for rasters:', baseUrl);
                     async function showNextTimestep() {
                         const rasterUrl = `${baseUrl}/wildfire_t_${timestep.toString().padStart(3, '0')}.tif`;
-
+                        console.log('[INFO] rasterUrl for rasters:', rasterUrl);
+                        
                         try {
                             const headResp = await fetch(rasterUrl, { method: 'HEAD' });
                             if (!headResp.ok) {
                                 console.log(`[INFO] No more rasters found after t=${timestep - 1}`);
                                 showToast('Wildfire simulation visualization complete.');
+
+                                // Clean up the simulation state
+                                timestep = null;          // Reset timestep
+                                // delete timestep;          // Remove from current scope if possible
+                                map.simRunning = false;   // Optional: mark simulation stopped
                                 return;
                             }
 
@@ -426,11 +436,14 @@ function setupButtons() {
                             const arrayBuffer = await resp.arrayBuffer();
                             const geoRaster = await parseGeoraster(arrayBuffer);
 
-                            if (forestLayer) map.removeLayer(forestLayer);
+                            // Use a dedicated variable for wildfire simulations
+                            if (map.wildfireSimLayer) {
+                                try { map.removeLayer(map.wildfireSimLayer); } catch {}
+                            }
 
-                            forestLayer = new GeoRasterLayer({
+                            map.wildfireSimLayer = new GeoRasterLayer({
                                 georaster: geoRaster,
-                                pane: 'forestPane',
+                                pane: 'wildfireSimPane',
                                 opacity: 1.0,
                                 resolution: 128,
                                 pixelValuesToColorFn: function(values) {
@@ -446,7 +459,7 @@ function setupButtons() {
 
                             console.log(`[INFO] Displaying timestep ${timestep}`);
                             timestep++;
-                            setTimeout(showNextTimestep, 1000); // 1 second per frame
+                            setTimeout(showNextTimestep, 5000); // seconds per frame
                         } catch (err) {
                             console.error('[ERROR] Failed to load wildfire raster:', err);
                         }

@@ -11,16 +11,16 @@ from rasterio.windows import transform as window_transform
 
 # --- Import config from parent directory ---
 try:
-    from config import GEOTIFF_DIR, OUTPUT_BASE
+    from config import GEOTIFF_DIR, WILDFIRE_OUTPUT_BASE
 except ImportError:
     # Fallback for running script directly
     print("Warning: Could not import config. Using relative paths.")
     BASE_DIR = os.path.dirname(os.path.abspath(__file__))
     PROJECT_ROOT = os.path.abspath(os.path.join(BASE_DIR, os.pardir))
     GEOTIFF_DIR = os.path.join(PROJECT_ROOT, "data", "shared", "geotiff")
-    OUTPUT_BASE = os.path.join(PROJECT_ROOT, "wildfire_output")
+    WILDFIRE_OUTPUT_BASE = os.path.join(PROJECT_ROOT, "wildfire_output")
     os.makedirs(GEOTIFF_DIR, exist_ok=True)
-    os.makedirs(OUTPUT_BASE, exist_ok=True)
+    os.makedirs(WILDFIRE_OUTPUT_BASE, exist_ok=True)
 
 logger = logging.getLogger(__name__)
 
@@ -161,8 +161,8 @@ def run_geotiff_simulation(county_key, igni_lat, igni_lon):
     # --- Step 3: Prepare output directory ---
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     sim_run_name = f"sim_run_{county_key}_{timestamp}"
-    # OUTPUT_BASE comes from config
-    current_sim_output_dir = os.path.join(OUTPUT_BASE, sim_run_name)
+    # WILDFIRE_OUTPUT_BASE comes from config
+    current_sim_output_dir = os.path.join(WILDFIRE_OUTPUT_BASE, sim_run_name)
     
     logger.info(f"Creating output subfolder: {current_sim_output_dir}")
     os.makedirs(current_sim_output_dir, exist_ok=True)
