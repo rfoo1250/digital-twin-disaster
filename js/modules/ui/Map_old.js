@@ -1,4 +1,4 @@
-// Updated Map.js - Fixed redrawing issues
+// Updated Map.js
 import * as turf from '@turf/turf';
 import parseGeoraster from 'georaster';
 import GeoRasterLayer from 'georaster-layer-for-leaflet';
@@ -167,12 +167,6 @@ async function handleCountySelectionForGEE(feature) {
 
                 // forestLayer.addTo(map);
                 // countyMask.addTo(map);
-                
-                // Ensure proper layer ordering after adding forest layer
-                if (countyLayer) {
-                    countyLayer.bringToFront();
-                }
-                
                 showToast('Forest GeoTIFF loaded successfully.');
                 geotiffLoaded = true;
             } else {
@@ -275,7 +269,6 @@ function setupButtons() {
             ignitionMarker = null;
             geoRaster = null;
             geotiffLoaded = false;
-            map.wildfireSimLayer = null;
             localStorage.removeItem('ignitionPoint');
         });
     }
@@ -354,28 +347,26 @@ function setupButtons() {
         startWildfireSimBtn.addEventListener('click', async () => {
             if (startWildfireSimBtn.disabled) return;
 
-            // If frames already loaded and animation stopped, just replay
-            if (map.wildfireFrames && map.wildfireFrames.length > 0 && !map.wildfireAnimTimer) {
-                startWildfireAnimation();
-                return;
-            }
-
+            // Ensure a county is selected
             if (!selectedCounty) {
                 showToast('Please select a county first.', true);
                 return;
             }
 
+            // Ensure forest layer (GeoTIFF or GEE) is loaded
             if (!geotiffLoaded && !forestLayer) {
                 showToast('Forest data not loaded yet. Enable the forest layer first.', true);
                 return;
             }
 
+            // Ensure ignition point is set
             const ignition = JSON.parse(localStorage.getItem('ignitionPoint'));
             if (!ignition || !ignition.lat || !ignition.lng) {
                 showToast('Please set an ignition point before running the simulation.', true);
                 return;
             }
 
+            // At this point, all preconditions are satisfied
             const countyKey = getCurrentCountyKey();
             if (!countyKey) {
                 showToast('Missing county key. Please select a valid county.', true);
@@ -392,93 +383,74 @@ function setupButtons() {
                 //     igniPointLon: ignition.lng
                 // });
 
+                // revert when done testing
                 const response = {
                     success: true,
                     output_dir: `wildfire_output/sim_run_Door_WI_20251121_150709`
-                };
+                }
 
+                
                 if (response && response.success && response.output_dir) {
                     const outputDir = response.output_dir;
+                    console.log(`[INFO] Wildfire simulation output at: ${outputDir}`);
+
+                    // HERE
+                    // FIXME: fix the url stuff, still unfound, end at 000
+                    // Build raster URLs like: /data/shared/geotiffs/wildfire_output/sim_run_.../wildfire_t_000.tif
                     const baseUrl = `${CONFIG.API_BASE_URL}/${outputDir}`;
-                    
-                    console.log('[INFO] Preloading wildfire frames...');
-                    showToast('Loading wildfire simulation frames...');
-
-                    // Clean up any previous wildfire animation
-                    if (map.wildfireAnimTimer) {
-                        clearInterval(map.wildfireAnimTimer);
-                        map.wildfireAnimTimer = null;
-                    }
-                    if (map.wildfireFrames) {
-                        map.wildfireFrames.forEach((layer) => {
-                            try { map.removeLayer(layer); } catch {}
-                        });
-                    }
-                    map.wildfireFrames = [];
-
-                    // Preload all frames as GeoRasterLayers
                     let timestep = 0;
-                    const maxTimesteps = 100; // Safety limit
-                    
-                    while (timestep < maxTimesteps) {
+                    console.log('[INFO] baseUrl for rasters:', baseUrl);
+                    async function showNextTimestep() {
                         const rasterUrl = `${baseUrl}/wildfire_t_${timestep.toString().padStart(3, '0')}.tif`;
+                        console.log('[INFO] rasterUrl for rasters:', rasterUrl);
                         
                         try {
                             const headResp = await fetch(rasterUrl, { method: 'HEAD' });
                             if (!headResp.ok) {
-                                console.log(`[INFO] Found ${timestep} wildfire frames`);
-                                break;
+                                console.log(`[INFO] No more rasters found after t=${timestep - 1}`);
+                                showToast('Wildfire simulation visualization complete.');
+
+                                // Clean up the simulation state
+                                timestep = null;          // Reset timestep
+                                // delete timestep;          // Remove from current scope if possible
+                                map.simRunning = false;   // Optional: mark simulation stopped
+                                return;
                             }
 
                             const resp = await fetch(rasterUrl);
                             const arrayBuffer = await resp.arrayBuffer();
-                            const simGeoRaster = await parseGeoraster(arrayBuffer);
+                            const geoRaster = await parseGeoraster(arrayBuffer);
 
-                            const frameLayer = new GeoRasterLayer({
-                                georaster: simGeoRaster,
+                            // Use a dedicated variable for wildfire simulations
+                            if (map.wildfireSimLayer) {
+                                try { map.removeLayer(map.wildfireSimLayer); } catch {}
+                            }
+
+                            map.wildfireSimLayer = new GeoRasterLayer({
+                                georaster: geoRaster,
                                 pane: 'wildfireSimPane',
-                                opacity: 0, // All frames start hidden
-                                resolution: 256,
+                                opacity: 1.0,
+                                resolution: 128,
                                 pixelValuesToColorFn: function(values) {
                                     const val = values[0];
                                     switch (val) {
-                                        case 1: return 'rgba(0,0,0,0)';
-                                        case 2: return 'rgba(255,165,0,0.9)';
-                                        case 3: return 'rgba(255,0,0,0.9)';
-                                        default: return 'rgba(0,0,0,0)';
+                                        case 1: return 'rgba(0,0,0,0)';   // forest (transparent)
+                                        case 2: return 'rgba(255,165,0,0.9)'; // burning (yellow-orange)
+                                        case 3: return 'rgba(255,0,0,0.9)';   // burnt (red)
+                                        default: return 'rgba(0,0,0,0)';      // transparent
                                     }
-                                },
-                                mask: selectedCounty.feature.geometry
-                            });
+                                }
+                            }).addTo(map);
 
-                            frameLayer.addTo(map);
-                            map.wildfireFrames.push(frameLayer);
-                            
-                            console.log(`[INFO] Loaded frame ${timestep}`);
+                            console.log(`[INFO] Displaying timestep ${timestep}`);
                             timestep++;
+                            setTimeout(showNextTimestep, 5000); // seconds per frame
                         } catch (err) {
-                            console.error(`[ERROR] Failed to load frame ${timestep}:`, err);
-                            break;
+                            console.error('[ERROR] Failed to load wildfire raster:', err);
                         }
                     }
 
-                    if (map.wildfireFrames.length === 0) {
-                        showToast('No wildfire frames found.', true);
-                        return;
-                    }
-
-                    // Ensure proper layer ordering
-                    if (forestLayer && map.hasLayer(forestLayer)) {
-                        forestLayer.bringToFront();
-                    }
-                    if (countyLayer) {
-                        countyLayer.bringToFront();
-                    }
-
-                    showToast(`Loaded ${map.wildfireFrames.length} frames. Starting animation...`);
-                    
-                    // Start the animation
-                    startWildfireAnimation();
+                    showNextTimestep();
                 }
             } catch (err) {
                 console.error('[SIMULATION ERROR]', err);
@@ -486,59 +458,6 @@ function setupButtons() {
             }
 
         });
-    }
-
-    // Separate function to start/restart animation
-    function startWildfireAnimation() {
-        if (!map.wildfireFrames || map.wildfireFrames.length === 0) {
-            console.warn('[WARN] No wildfire frames to animate');
-            return;
-        }
-
-        // Stop any existing animation
-        if (map.wildfireAnimTimer) {
-            clearInterval(map.wildfireAnimTimer);
-        }
-
-        // Hide all frames first
-        map.wildfireFrames.forEach(frame => frame.setOpacity(0));
-
-        console.log(`[INFO] Starting animation with ${map.wildfireFrames.length} frames`);
-        showToast('Playing wildfire animation...');
-
-        let currentFrame = 0;
-        
-        // Show first frame immediately
-        map.wildfireFrames[0].setOpacity(0.95);
-
-        map.wildfireAnimTimer = setInterval(() => {
-            // Move to next frame
-            currentFrame++;
-            
-            // Check if we've finished the loop
-            if (currentFrame >= map.wildfireFrames.length) {
-                clearInterval(map.wildfireAnimTimer);
-                map.wildfireAnimTimer = null;
-                console.log('[INFO] Animation complete - displaying final frame');
-                showToast('Wildfire simulation complete. Click button to replay.');
-                
-                // Update button text to indicate replay option
-                const btn = document.getElementById('start-wildfire-sim');
-                if (btn) {
-                    btn.textContent = 'Replay wildfire simulation';
-                }
-                return;
-            }
-            
-            // Hide previous frame
-            if (currentFrame > 0) {
-                map.wildfireFrames[currentFrame - 1].setOpacity(0);
-            }
-            
-            // Show next frame
-            map.wildfireFrames[currentFrame].setOpacity(0.95);
-            console.log(`[INFO] Displaying frame ${currentFrame}`);
-        }, 500); // 0.5 seconds per frame
     }
 
     updateButtonStates();
