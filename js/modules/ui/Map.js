@@ -6,6 +6,9 @@ import ForestLayer from "./ForestLayer.js";
 import IgnitionManager from "./IgnitionManager.js";
 import WildfireSimulationLayer from "./WildfireSimulationLayer.js";
 import { showToast } from "../../utils/toast.js";
+import {
+    getCurrentCountyKey
+} from "../services/DataManager.js";
 
 // Internal state
 let isFocused = false;
@@ -98,13 +101,20 @@ function setupButtons() {
 
             showToast("Loading wildfire simulation...");
 
-            const countyKey = window.getCurrentCountyKey ? window.getCurrentCountyKey() : null;
+            const countyKey = getCurrentCountyKey();
             if (!countyKey) return showToast("Missing county key.", true);
 
-            // Simulated response (replace with API call)
+            // --- REAL CALL (future) ---
+            // const response = await loadWildfireSimulation({
+            //     countyKey,
+            //     igniPointLat: ignition.lat,
+            //     igniPointLon: ignition.lng
+            // });
+
+            // --- TEST RESPONSE (current) ---
             const response = {
                 success: true,
-                output_dir: `wildfire_output/sim_run_${countyKey}`
+                output_dir: `wildfire_output/sim_run_Door_WI_20251121_150709`
             };
 
             if (!response.success) return showToast("Simulation failed.", true);
@@ -182,8 +192,8 @@ function updateButtonStates() {
     const hasIgnition = localStorage.getItem("ignitionPoint") !== null;
 
     if (setIgnBtn) setIgnBtn.disabled = !isFocused;
-    if (removeIgnBtn) removeIgnBtn.disabled = !hasIgnition;
-    if (startSimBtn) startSimBtn.disabled = !hasIgnition;
+    if (removeIgnBtn) removeIgnBtn.disabled = !hasIgnition || !isFocused;
+    if (startSimBtn) startSimBtn.disabled = !hasIgnition || !isFocused;
 }
 
 window.updateButtonStates = updateButtonStates;

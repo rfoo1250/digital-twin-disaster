@@ -1,5 +1,5 @@
 // WildfireSimulationLayer.js
-// Handles wildfire simulation frame loading, animation, and replay
+// Handles wildfire simulation frame loading, animation
 
 import parseGeoraster from "georaster";
 import GeoRasterLayer from "georaster-layer-for-leaflet";
@@ -12,7 +12,7 @@ import { getCurrentCountyKey } from "../services/DataManager.js";
 let wildfireFrames = [];
 let wildfireAnimTimer = null;
 
-let WILDFIRE_ANIMATION_INTERVAL = 1000; // milliseconds
+let WILDFIRE_ANIMATION_INTERVAL = 2000; // milliseconds
 
 async function loadWildfireFrames(outputDir) {
     const map = MapCore.getMap();
@@ -96,7 +96,7 @@ function startAnimation() {
 
         if (currentFrame >= wildfireFrames.length) {
             stopAnimation();
-            showToast("Wildfire simulation complete. Replay available.");
+            showToast("Wildfire simulation complete.");
             return;
         }
 
