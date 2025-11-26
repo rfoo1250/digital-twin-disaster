@@ -1,6 +1,7 @@
 # Digital Twin for Disasters
 
 🚧 CHANGES NEEDED 🚧
+TODO:
 npm init -y for vite usage
 new package and package-lock
 new users should have node or a nodeenv (from python's pip)
