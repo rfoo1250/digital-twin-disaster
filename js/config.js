@@ -30,7 +30,7 @@ const CONFIG = {
     DEBUG_MODE: true,
     MAP_FLY_DURATION: 0.8, // seconds
     COUNTY_LABEL_FLASH_DURATION: 2000, // ms
-    DEFAULT_FOREST_OPACITY: 0.8,
+    DEFAULT_FOREST_OPACITY: 1.0,
     WILDFIRE_STEP_DELAY: 500, // ms between timesteps
     TOAST_SHOW_TIME: 3000, // ms
 

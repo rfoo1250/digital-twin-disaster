@@ -162,3 +162,16 @@ main#main {
 .tooltip {
     z-index: 999;
 }
+
+/* Leaflet */
+/* Option A: The Outline Hack (Best for most) */
+.leaflet-layer .leaflet-tile {
+    outline: 1px solid transparent; /* Triggers different rendering path in some browsers */
+}
+
+/* Option B: The Scale Hack (If Option A fails) */
+/* forcing tiles to be 1px larger to overlap each other */
+.leaflet-tile-container img {
+    width: 256.5px !important; 
+    height: 256.5px !important; 
+}
