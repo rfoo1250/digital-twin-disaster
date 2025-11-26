@@ -58,16 +58,7 @@ async function loadWildfireFrames(outputDir) {
                 mask: selectedCounty.feature.geometry
             });
 
-            // Add a promise to track when layer is fully ready
-            frameLayer._readyPromise = new Promise((resolve) => {
-                frameLayer.on('load', () => {
-                    console.log(`[DEBUG] Frame ${timestep} loaded and ready`);
-                    resolve();
-                });
-            });
-
             frameLayer.addTo(map);
-            console.log(`[DEBUG] Frame ${timestep} added to map`);
             wildfireFrames.push(frameLayer);
             timestep++;
         } catch (err) {
@@ -94,89 +85,39 @@ function startAnimation() {
     const map = MapCore.getMap();
     if (!map || wildfireFrames.length === 0) return;
 
-    console.log(`[DEBUG] Starting animation with ${wildfireFrames.length} frames`);
     stopAnimation(); // Reset any existing animation
 
     wildfireFrames.forEach(frame => frame.setOpacity(0));
     let currentFrame = 0;
     
     // Function to show a frame with proper rendering
-    const showFrame = async (frameIndex) => {
-        console.log(`[DEBUG] Attempting to show frame ${frameIndex}`);
+    const showFrame = (frameIndex) => {
+        wildfireFrames[frameIndex].setOpacity(CONFIG.DEFAULT_WILDFIRE_OPACITY);
         
-        const frame = wildfireFrames[frameIndex];
-        
-        // Wait for the layer to be ready if it has a ready promise
-        if (frame._readyPromise) {
-            console.log(`[DEBUG] Waiting for frame ${frameIndex} to be ready...`);
-            await frame._readyPromise;
-            console.log(`[DEBUG] Frame ${frameIndex} is ready!`);
-        }
-        
-        // Try removing and re-adding the layer
-        console.log(`[DEBUG] Removing and re-adding frame ${frameIndex}`);
-        map.removeLayer(frame);
-        map.addLayer(frame);
-        
-        // Set opacity
-        frame.setOpacity(CONFIG.DEFAULT_WILDFIRE_OPACITY);
-        console.log(`[DEBUG] Frame ${frameIndex} opacity set to ${CONFIG.DEFAULT_WILDFIRE_OPACITY}`);
-        
-        // Force multiple types of redraws
-        if (frame._layer) {
-            console.log(`[DEBUG] Calling redraw on frame ${frameIndex}._layer`);
-            frame._layer.redraw();
-        }
-        
-        // Try to access and manipulate the canvas directly
-        if (frame._layer && frame._layer._canvas) {
-            console.log(`[DEBUG] Forcing canvas style update for frame ${frameIndex}`);
-            const canvas = frame._layer._canvas;
-            canvas.style.opacity = CONFIG.DEFAULT_WILDFIRE_OPACITY;
-            // Force a reflow
-            canvas.offsetHeight;
-        }
-        
-        // Force map refresh
+        // Force canvas redraw by temporarily panning the map
         const center = map.getCenter();
         const zoom = map.getZoom();
         map.setView(center, zoom, { animate: false });
-        console.log(`[DEBUG] Map view reset for frame ${frameIndex}`);
         
-        // Additional fallback
-        map.invalidateSize();
-        console.log(`[DEBUG] Map size invalidated for frame ${frameIndex}`);
-        
-        // Try panBy with 0,0 to force a render
-        map.panBy([0, 0]);
-        console.log(`[DEBUG] Map panBy(0,0) called for frame ${frameIndex}`);
+        console.log(`[DEBUG] Showing frame ${frameIndex}`);
     };
     
-    // Show first frame
-    console.log(`[DEBUG] Scheduling first frame display`);
-    showFrame(0).then(() => {
-        console.log(`[DEBUG] First frame displayed successfully`);
-    }).catch(err => {
-        console.error(`[ERROR] Failed to show first frame:`, err);
-    });
+    // Show first frame with a slight delay to ensure it's ready
+    setTimeout(() => {
+        showFrame(0);
+    }, WILDFIRE_FRAME_TIMEOUT);
 
     wildfireAnimTimer = setInterval(() => {
         currentFrame++;
-        console.log(`[DEBUG] Timer tick - advancing to frame ${currentFrame}`);
 
         if (currentFrame >= wildfireFrames.length) {
-            console.log(`[DEBUG] Animation complete`);
             stopAnimation();
             showToast("Wildfire simulation complete.");
             return;
         }
 
-        console.log(`[DEBUG] Hiding frame ${currentFrame - 1}`);
         wildfireFrames[currentFrame - 1].setOpacity(0);
-        
-        showFrame(currentFrame).catch(err => {
-            console.error(`[ERROR] Failed to show frame ${currentFrame}:`, err);
-        });
+        showFrame(currentFrame);
     }, WILDFIRE_ANIMATION_INTERVAL);
 }
 
