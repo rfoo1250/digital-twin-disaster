@@ -127,5 +127,6 @@ export default {
     loadWildfireFrames,
     startAnimation,
     stopAnimation,
-    resetSimulation
+    resetSimulation,
+    getFrames: () => wildfireFrames
 };

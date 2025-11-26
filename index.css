@@ -41,6 +41,12 @@ main#main {
     /* box-shadow: var(--shadow); */
 }
 
+/* made it worse */
+/* .leaflet-tile {
+    image-rendering: pixelated;
+    transform: translateZ(0);
+} */
+
 #county-selected-text-container {
     position: absolute;
     top: 10px;

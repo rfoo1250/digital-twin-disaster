@@ -18,8 +18,21 @@ const dimCountyStyle = { color: "#999", weight: 0.5, opacity: 0.2, fillOpacity: 
 
 function init() {
     console.log("[INFO] Initializing Leaflet map (MapCore)...");
+    
+    // dont work
+    // const _oldSetPos = L.DomUtil.setPosition;
+    // L.DomUtil.setPosition = function (el, point, round) {
+    //     // force rounding
+    //     _oldSetPos(el, point.round(), true);
+    // };
 
-    map = L.map("map").setView(CONFIG.MAP_DEFAULT_CENTER, CONFIG.MAP_DEFAULT_ZOOM);
+    // map = L.map("map").setView(CONFIG.MAP_DEFAULT_CENTER, CONFIG.MAP_DEFAULT_ZOOM);
+    // dont work
+    map = L.map("map", {
+        zoomAnimation: false,
+        zoomSnap: 1,        // force integer zooms
+        zoomDelta: 1
+    }).setView(CONFIG.MAP_DEFAULT_CENTER, CONFIG.MAP_DEFAULT_ZOOM);
 
     // Create custom panes for layer ordering
     map.createPane("tilePane");

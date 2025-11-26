@@ -161,13 +161,23 @@ function setupLayerToggles() {
 
     if (wildfireToggle) {
         wildfireToggle.addEventListener("change", (e) => {
-            const frames = WildfireSimulationLayer.frames || [];
+            const frames = WildfireSimulationLayer.getFrames();
+
+            // No wildfire simulation yet?
+            // if (!frames || frames.length === 0) {
+            //     showToast("Run a wildfire simulation first.", true);
+            //     wildfireToggle.checked = false; // revert toggle
+            //     return;
+            // }
+
+            // Toggle frames
             frames.forEach(frame => {
                 if (e.target.checked) frame.addTo(map);
                 else map.removeLayer(frame);
             });
         });
     }
+
 }
 
 // ---------------- STATE RESTORE ----------------
