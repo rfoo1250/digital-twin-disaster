@@ -7,6 +7,7 @@ import IgnitionManager from "./IgnitionManager.js";
 import WildfireSimulationLayer from "./WildfireSimulationLayer.js";
 import { showToast } from "../../utils/toast.js";
 import {
+    loadWildfireSimulation,
     getCurrentCountyKey
 } from "../services/DataManager.js";
 
@@ -94,7 +95,7 @@ function setupButtons() {
 
     if (startSimBtn) {
         startSimBtn.addEventListener("click", async () => {
-            const ignition = localStorage.getItem("ignitionPoint");
+            const ignition = JSON.parse(localStorage.getItem("ignitionPoint"));
             const selected = MapCore.getSelectedCounty();
             if (!ignition) return showToast("Set an ignition point first.", true);
             if (!selected) return showToast("Select a county first.", true);
@@ -114,7 +115,8 @@ function setupButtons() {
             // --- TEST RESPONSE (current) ---
             const response = {
                 success: true,
-                output_dir: `wildfire_output/sim_run_Door_WI_20251121_134457`
+                output_dir: `wildfire_output/sim_run_Door_WI_20251121_150709`
+                // output_dir: `wildfire_output/sim_run_Door_WI_20251121_134457`
             };
 
             if (!response.success) return showToast("Simulation failed.", true);
