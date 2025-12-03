@@ -82,7 +82,7 @@ function setupButtons() {
 
     if (setIgnitionBtn) {
         setIgnitionBtn.addEventListener("click", () => {
-            if (!isFocused) return showToast("Focus on a county first.", true);
+            if (!isFocused) return showToast("Please focus on a county first.", true);
             IgnitionManager.enableIgnitionSelection();
         });
     }
@@ -98,8 +98,8 @@ function setupButtons() {
         startSimBtn.addEventListener("click", async () => {
             const ignition = JSON.parse(localStorage.getItem("ignitionPoint"));
             const selected = MapCore.getSelectedCounty();
-            if (!ignition) return showToast("Set an ignition point first.", true);
-            if (!selected) return showToast("Select a county first.", true);
+            if (!ignition) return showToast("Please set an ignition point first.", true);
+            if (!selected) return showToast("Please select a county first.", true);
 
             showToast("Loading wildfire simulation...");
 
@@ -247,8 +247,8 @@ function setupLayerToggles() {
         forestToggle.addEventListener("change", async (e) => {
             const selected = MapCore.getSelectedCounty();
             if (e.target.checked) {
-                if (!selected) return showToast("Select a county first.", true);
-                if (!isFocused) return showToast("Focus on the county first.", true);
+                if (!selected) return showToast("Please select a county first.", true);
+                if (!isFocused) return showToast("Please focus on the county first.", true);
                 await ForestLayer.handleCountySelectionForGEE(selected.feature);
             } else {
                 const layer = ForestLayer.getForestLayer();

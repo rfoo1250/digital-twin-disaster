@@ -36,7 +36,8 @@ async function handleMapClick(e, countyLayer) {
     const geoRaster = ForestLayer.getGeoRaster();
 
     if (!geoRaster) {
-        showToast("Forest GeoTIFF not loaded.", true);
+        showToast("Failed to load forest layer.", true);
+        console.warn("[WARN] Forest GeoTIFF not loaded.");
         return;
     }
 
@@ -45,7 +46,7 @@ async function handleMapClick(e, countyLayer) {
     const inside = turf.booleanPointInPolygon(point, countyLayer.feature);
 
     if (!inside) {
-        showToast("Click inside the selected county.", true);
+        showToast("Please click inside the selected county.", true);
         return;
     }
 

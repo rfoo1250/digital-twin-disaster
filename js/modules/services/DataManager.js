@@ -34,15 +34,15 @@ async function loadWildfireSimulation({ countyKey, igniPointLat, igniPointLon })
         if (response.success && response.output_dir) {
             setState('wildfireOutputDir', response.output_dir);
             console.log(`[INFO] Wildfire simulation completed for ${countyKey}. Output directory: ${response.output_dir}`);
-            showToast(`Wildfire simulation complete. Output saved to ${response.output_dir}`, false);
+            showToast(`Wildfire simulation complete.`, false);
             return response;
         } else {
             console.warn('[WARN] Wildfire simulation returned an error or missing output_dir:', response.message);
-            showToast(`Wildfire simulation error: ${response.message}`, true);
+            showToast(`Wildfire simulation error.`, true);
         }
     } catch (error) {
         console.error('[ERROR] DataManager: Failed to load wildfire simulation.', error);
-        showToast('Failed to run wildfire simulation. See console for details.', true);
+        showToast('Failed to run wildfire simulation.', true);
     }
 }
 
@@ -95,7 +95,7 @@ async function startForestDataExport(geometry) {
                 status: 'COMPLETED',
                 localPath: taskResponse.local_path
             });
-            showToast("Cached forest data loaded.", false);
+            console.log("[INFO] Cached forest data loaded.", false);
 
         } else if (taskResponse.status === 'PROCESSING') {
             // CACHE MISS. Task is running.

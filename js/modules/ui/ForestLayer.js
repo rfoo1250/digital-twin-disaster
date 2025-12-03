@@ -66,7 +66,7 @@ async function handleCountySelectionForGEE(feature) {
                     mask: feature.geometry
                 }).addTo(map);
 
-                showToast("Forest GeoTIFF loaded successfully.");
+                showToast("Forest layer map loaded successfully.");
                 geotiffLoaded = true;
             }
         } catch (err) {
@@ -92,7 +92,7 @@ async function handleCountySelectionForGEE(feature) {
                 }
 
                 forestLayer = tileLayer.addTo(map);
-                showToast("Loaded GEE forest layer (fallback).");
+                console.log("[INFO] Loaded GEE forest layer (fallback).");
             } else {
                 showToast("Failed to load forest layer.", true);
             }

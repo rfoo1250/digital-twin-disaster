@@ -7,7 +7,7 @@ import CONFIG from "../../config.js";
 import MapCore from "./MapCore.js";
 import ForestLayer from "./ForestLayer.js";
 import { showToast } from "../../utils/toast.js";
-import { getCurrentCountyKey } from "../services/DataManager.js";
+// import { getCurrentCountyKey } from "../services/DataManager.js";
 
 let wildfireFrames = [];
 let wildfireAnimTimer = null;
@@ -68,7 +68,8 @@ async function loadWildfireFrames(outputDir) {
     }
 
     if (wildfireFrames.length === 0) {
-        showToast("No wildfire frames found.", true);
+        // showToast("No wildfire frames found.", true);
+        console.warn("[WARN] No wildfire frames found.");
         return false;
     }
 

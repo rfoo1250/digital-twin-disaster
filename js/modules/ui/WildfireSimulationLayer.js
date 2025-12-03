@@ -68,7 +68,8 @@ async function loadWildfireFrames(outputDir) {
     }
 
     if (wildfireFrames.length === 0) {
-        showToast("No wildfire frames found.", true);
+        // showToast("No wildfire frames found.", true);
+        console.warn("[WARN] No wildfire frames found.");
         return false;
     }
 
