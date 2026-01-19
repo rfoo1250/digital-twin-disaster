@@ -5,7 +5,7 @@
  * Initializes the map UI and connects it to the backend API.
  */
 
-import CONFIG from './config.js';
+
 import Map from './modules/ui/Map.js';
 // import Wildfire from './modules/ui/Wildfire.js';
 import { loadAllData } from './modules/services/DataManager.js';

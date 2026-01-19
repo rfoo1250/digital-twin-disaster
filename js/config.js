@@ -3,6 +3,7 @@
  * ---------------------------------------------
  * Central configuration file for the Wildfire Simulation frontend.
  * Shared constants for API endpoints, map settings, and UI options.
+ * You want to change things here.
  */
 
 const CONFIG = {

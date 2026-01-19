@@ -1,3 +1,8 @@
+/**
+ * ---------------------------------------------
+ * Central constants for the Wildfire Simulation frontend.
+ * You do not want to change things here.
+ */ 
 // Convert numeric FIPS to 2-letter state abbreviation
 export const fipsToState = {
     "01": "AL", "02": "AK", "04": "AZ", "05": "AR", "06": "CA",
