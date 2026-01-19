@@ -1,5 +1,9 @@
 # Digital Twin for Disasters
 
+[![Python](https://img.shields.io/badge/Python-3.13.5-blue)](https://www.python.org/downloads/release/python-3135/)
+[![Node.js](https://img.shields.io/badge/Node.js-25.2.1-green)](https://nodejs.org/)
+[![npm](https://img.shields.io/badge/npm-11.6.2-red)](https://www.npmjs.com/)
+
 <!-- 🚧 SUMAMARY NEEDED 🚧 -->
 ## Summary
 This project is a Digital Twin platform for disaster modeling and visualization, currently focused on wildfire simulation with an extensible design for future disaster types.
