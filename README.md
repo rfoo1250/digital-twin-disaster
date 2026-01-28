@@ -149,10 +149,84 @@ Then, go to your localhost's port via a web browser.
 
 1/5/2026 - images needed to illustrate steps
 
+## Folder structure
+```text
+.
+├── assets
+│   └── loader.gif
+├── data
+│   ├── shared
+│   │   ├── geojson
+│   │   └── geotiff
+│   └── README.md
+├── js
+│   ├── modules
+│   │   ├── services
+│   │   │   ├── APIClient.js
+│   │   │   └── DataManager.js
+│   │   ├── ui
+│   │   │   ├── ForestLayer.js
+│   │   │   ├── IgnitionManager.js
+│   │   │   ├── Map.js
+│   │   │   ├── MapCore.js
+│   │   │   └── WildfireSimulationLayer.js
+│   │   └── state.js
+│   ├── utils
+│   │   ├── constants.js
+│   │   ├── loader.js
+│   │   └── toast.js
+│   ├── app.js
+│   └── config.js
+├── public
+│   └── geojson-counties-fips.json
+├── py
+│   ├── api
+│   │   ├── errors.py
+│   │   └── routes.py
+│   ├── earthengine
+│   │   ├── routes.py
+│   │   └── service.py
+│   ├── models
+│   ├── simulation
+│   ├── utils
+│   │   ├── constants.py
+│   │   └── logger.py
+│   ├── wildfire_sim
+│   │   ├── create_forest.py
+│   │   ├── incinerate.py
+│   │   ├── incinerate_old.py
+│   │   └── sca.py
+│   ├── app.py
+│   ├── config.py
+│   ├── requirements.txt
+│   └── state.py
+├── secrets
+├── wildfire_output
+├── .gitignore
+├── README.md
+├── base.css
+├── covtype.csv
+├── incinerate.css
+├── incinerate.html
+├── index.css
+├── index.html
+├── nav.html
+├── nav_control.js
+├── package-lock.json
+├── package.json
+├── ref.md
+├── style.css
+├── template.html
+├── tree.txt
+└── vite.config.js
+```
+
+- The `data` folder contains all data, will be ignored in `.gitignore`.
+- You can store old, reference, or notes in `old_*/`, it will be ignored.
+- You can store the service account json in `secrets/`, it is referenced directly in the config files and will be ignored in `.gitignore`.
+
 ## Technicalities
 This project maintains its logs of errors, bugs, and fixes on [Github's internal Issues page](https://github.com/rfoo1250/digital-twin-disaster-proto/issues).
-
-The `old_codes` folder contains older, test codes for potential future reference. 
 
 ---
 
