@@ -61,6 +61,7 @@ This project uses Google Earth Engine and Google Cloud Storage services, which e
 4. Add the key to your USER PATH.
 4a. You can add it via System Properties > Advanced > Environment Variables > User Variables for User > New... add Variable Name as "GOOGLE_APPLICATION_CREDENTIALS" and paste the path to the key in Variable Path.
 4b. or you can add directly via Windows Command Prompt / Powershell
+4c. or, as a safety precaution, add it to `config.py`, place the actual name assigned to `SERVICE_ACCOUNT_JSON_PATH` without parent folder. It will handle it.
 ```cmd
 # use setx
 setx GOOGLE_APPLICATION_CREDENTIALS "C:\path\to\your\service-account-key.json" /M
@@ -149,7 +150,9 @@ Then, go to your localhost's port via a web browser.
 1/5/2026 - images needed to illustrate steps
 
 ## Technicalities
-This project maintains its logs of erros, bugs, and fixes on [Github's internal Issues page](https://github.com/rfoo1250/digital-twin-disaster-proto/issues).
+This project maintains its logs of errors, bugs, and fixes on [Github's internal Issues page](https://github.com/rfoo1250/digital-twin-disaster-proto/issues).
+
+The `old_codes` folder contains older, test codes for potential future reference. 
 
 ---
 
