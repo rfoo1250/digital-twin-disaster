@@ -61,6 +61,7 @@ async function loadGEEClippedLayer(geometry) {
 
         setState('geeLayerUrl', url);
         console.log('[INFO] GEE layer URL stored in state:', url);
+        return url;
     } catch (error) {
         console.error('[ERROR] DataManager: Failed to load GEE layer.', error);
     }
@@ -72,17 +73,17 @@ async function loadGEEClippedLayer(geometry) {
  * @param {string} countyName - Name of the county (e.g., "Maricopa")
  * @param {string} stateAbbr - State abbreviation (e.g., "AZ")
  */
+
 async function startForestDataExport(geometry) {
     try {
         const countyName = getCurrrentCountyName();
         const stateAbbr = getCurrentStateAbbr();
         const countyKey = getCurrentCountyKey();
         if (!countyKey) {
-            // need fixing
             throw new Error("County key is undefined. Cannot start export.");
         }
-        // Optimistically set a pending state
-        setState('currentExportTask', { id: null, countyKey: countyKey, status: 'PENDING', localPath: null });
+
+        setState('currentExportTask', { id: null, countyKey: countyKey, status: 'PENDING', localUrl: null });
 
         const taskResponse = await startForestExport(geometry, countyName, stateAbbr);
 
@@ -90,34 +91,46 @@ async function startForestDataExport(geometry) {
             throw new Error("Invalid response from start-export API.");
         }
 
+        // If backend says the file already exists, prefer a returned public URL (data.url)
         if (taskResponse.status === 'COMPLETED') {
-            // CACHE HIT!
-            console.log('[INFO] DataManager: Cache hit. File already exists at:', taskResponse.local_path);
-            setState('currentGEEForestGeoJSON', taskResponse.local_path);
+            const fileUrl = taskResponse.url || taskResponse.local_path || `/exports/${taskResponse.filename_key}.tif`;
+
+            console.log('[INFO] DataManager: Cache hit. File available at:', fileUrl);
+            setState('currentGEEForestFileUrl', fileUrl);
+            // Backwards compat (if other parts of code still expect this key)
+            setState('currentGEEForestGeoJSON', fileUrl);
+
             setState('currentExportTask', {
-                id: null, // No GEE task ID needed
+                id: null,
                 countyKey: taskResponse.filename_key,
                 status: 'COMPLETED',
-                localPath: taskResponse.local_path
+                localUrl: fileUrl
             });
-            console.log("[INFO] Cached forest data loaded.", false);
+            console.log("[INFO] Cached forest data loaded.");
+            return;
+        }
 
-        } else if (taskResponse.status === 'PROCESSING') {
-            // CACHE MISS. Task is running.
-            // This is where we link the GEE ID to our county key
+        // Processing started: record task id and key for polling
+        if (taskResponse.status === 'PROCESSING') {
             setState('currentExportTask', {
-                id: taskResponse.task_id, // <-- GEE's ID (e.g., P7NDW...)
-                countyKey: taskResponse.filename_key, // <-- Our key (e.g., Maricopa_AZ)
+                id: taskResponse.task_id,
+                countyKey: taskResponse.filename_key,
                 status: 'PROCESSING',
-                localPath: null
+                localUrl: null
             });
             console.log(`[INFO] DataManager: Forest export started. Task ID: ${taskResponse.task_id} for ${taskResponse.filename_key}`);
             alert("Starting forest data export. This may take several minutes.");
+            return;
         }
+
+        // Any other status treat as error
+        console.error('[ERROR] startForestDataExport unexpected status:', taskResponse.status);
+        setState('currentExportTask', { id: null, countyKey: null, status: 'FAILED', localUrl: null });
+        alert("Failed to start the export task. See console for details.");
 
     } catch (error) {
         console.error('[ERROR] DataManager: Failed to start forest export.', error);
-        setState('currentExportTask', { id: null, countyKey: null, status: 'FAILED', localPath: null });
+        setState('currentExportTask', { id: null, countyKey: null, status: 'FAILED', localUrl: null });
         alert("Failed to start the export task. See console for details.");
     }
 }
@@ -127,20 +140,12 @@ async function startForestDataExport(geometry) {
  */
 async function checkForestDataStatus() {
     const task = appState.currentExportTask;
-    // TODO: should change this to current selected county
-    // get countyKey, check if it matches, run
-
     if (!task || !task.status || task.status === 'NONE') {
         console.warn('[WARN] No export task is active. Cannot check status.');
         return 'NONE';
     }
 
-    // If it's already done, just return
-    if (task.status === 'COMPLETED') {
-        return 'COMPLETED';
-    }
-
-    // If it's pending but has no GEE ID, it can't be checked
+    if (task.status === 'COMPLETED') return 'COMPLETED';
     if (task.status === 'PROCESSING' && !task.id) {
         console.error('[ERROR] Task is processing but has no GEE task ID to poll.');
         return 'FAILED';
@@ -149,22 +154,26 @@ async function checkForestDataStatus() {
     console.log(`[INFO] DataManager: Checking status for task ${task.id} (${task.countyKey})`);
 
     try {
-        const statusResponse = await checkExportStatus(task.id, task.countyKey); // Poll using GEE's ID
+        const statusResponse = await checkExportStatus(task.id, task.countyKey);
 
         if (!statusResponse) throw new Error("No response from status check API.");
 
         switch (statusResponse.status) {
-            case 'COMPLETED':
-                console.log('[INFO] DataManager: Export complete. Local path:', statusResponse.local_path);
-                // Save the final file path
-                setState('currentGEEForestGeoJSON', statusResponse.local_path);
-                // Update the task state to COMPLETED
+            case 'COMPLETED': {
+                // Prefer a served URL in the `url` field; fallback to local_path or a constructed exports URL
+                const fileUrl = statusResponse.url || statusResponse.local_path || `/exports/${task.countyKey}.tif`;
+
+                console.log('[INFO] DataManager: Export complete. File URL:', fileUrl);
+                setState('currentGEEForestFileUrl', fileUrl);
+                setState('currentGEEForestGeoJSON', fileUrl); // compat
+
                 setState('currentExportTask', {
                     ...task,
                     status: 'COMPLETED',
-                    localPath: statusResponse.local_path
+                    localUrl: fileUrl
                 });
                 return 'COMPLETED';
+            }
 
             case 'PROCESSING':
                 console.log('[INFO] DataManager: Export is still processing.');
@@ -218,6 +227,10 @@ function getGEEUrl() {
     return appState.geeLayerUrl || null;
 }
 
+function getCurrentGEEForestFileUrl() {
+    return appState.currentGEEForestFileUrl || null;
+}
+
 function getCurrentGEEForestGeoJSON() {
     return appState.currentGEEForestGeoJSON || null;
 }
@@ -235,6 +248,7 @@ export {
     getCountyGeoData,
     getWildfireData,
     getGEEUrl,
+    getCurrentGEEForestFileUrl,
     getCurrentGEEForestGeoJSON,
     getForestExportStatus,
     setCurrentCountyNameAndStateAbbr,

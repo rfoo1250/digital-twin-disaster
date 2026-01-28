@@ -7,7 +7,8 @@ import CONFIG from "../../config.js";
 import {
     loadGEEClippedLayer,
     startForestDataExport,
-    getGEEUrl,
+    checkForestDataStatus,
+    getCurrentGEEForestFileUrl,
     setCurrentCountyNameAndStateAbbr,
     getCurrentCountyKey
 } from "../services/DataManager.js";
@@ -24,7 +25,6 @@ async function handleCountySelectionForGEE(feature) {
     const map = MapCore.getMap();
     if (!map) return;
 
-    // Start loader for the whole operation
     showLoader("Loading forest data…");
 
     try {
@@ -43,11 +43,9 @@ async function handleCountySelectionForGEE(feature) {
         }
 
         setCurrentCountyNameAndStateAbbr(countyName, stateAbbr);
-
         const countyKey = getCurrentCountyKey();
-        const geotiffUrl = `${CONFIG.API_BASE_URL}${CONFIG.GEOTIFF_URL}ForestCover_${countyKey}_2024.tif`;
 
-        // Reset previous state so UI stays correct if user re-requests
+        // Reset previous state
         geotiffLoaded = false;
         if (forestLayer) {
             try { map.removeLayer(forestLayer); } catch (e) {}
@@ -55,17 +53,18 @@ async function handleCountySelectionForGEE(feature) {
         }
         geoRaster = null;
 
-        // Try to load the local GeoTIFF first (HEAD -> GET -> parse)
-        try {
-            const headResponse = await fetch(geotiffUrl, { method: "HEAD" });
-            if (headResponse.ok) {
-                const resp = await fetch(geotiffUrl);
-                if (!resp.ok) throw new Error(`Failed to fetch GeoTIFF: ${resp.status}`);
+        // Construct served URL for the expected GeoTIFF
+        const servedGeotiffUrl = `${CONFIG.API_BASE_URL}/exports/${encodeURIComponent(countyKey)}.tif`;
 
+        // 1) Try local GeoTIFF first
+        try {
+            const headResp = await fetch(servedGeotiffUrl, { method: "HEAD" });
+            if (headResp.ok) {
+                const resp = await fetch(servedGeotiffUrl);
+                if (!resp.ok) throw new Error(`Failed to fetch GeoTIFF: ${resp.status}`);
                 const arrayBuffer = await resp.arrayBuffer();
                 geoRaster = await parseGeoraster(arrayBuffer);
 
-                // remove old layer if present
                 if (forestLayer) {
                     try { map.removeLayer(forestLayer); } catch {}
                 }
@@ -76,52 +75,123 @@ async function handleCountySelectionForGEE(feature) {
                     opacity: 1.0,
                     resolution: 128,
                     pixelValuesToColorFn: (values) => {
-                        const val = values[0];
-                        return val === 1 ? "rgba(0,150,0,0.9)" : "rgba(0,0,0,0)";
+                        const v = values[0];
+                        return v === 1 ? "rgba(0,150,0,0.9)" : "rgba(0,0,0,0)";
                     },
                     mask: feature.geometry
                 }).addTo(map);
 
                 geotiffLoaded = true;
-
-                // Done — hide loader and optionally notify
                 hideLoader();
                 showToast("Forest layer map loaded successfully.");
                 return;
             }
         } catch (err) {
-            // Local GeoTIFF load failed — we'll fallback
-            console.warn("[WARN] Local GeoTIFF load failed:", err);
+            console.warn("[WARN] Local GeoTIFF not available or failed to load:", err);
         }
 
-        // Fallback: Use GEE tiles (this can be long; loader remains visible)
-        if (!geotiffLoaded) {
-            // startForestDataExport may start a background export; loadGEEClippedLayer should attempt to return tile URL if available/cached
-            await Promise.all([
-                loadGEEClippedLayer(feature.geometry),
-                startForestDataExport(feature.geometry)
-            ]);
+        // 2) Start export + show preview tiles while waiting
+        // startForestDataExport initiates backend export and records task in DataManager
+        await startForestDataExport(feature.geometry);
 
-            const tileUrl = getGEEUrl();
-            if (tileUrl) {
-                const tileLayer = L.tileLayer(tileUrl, {
-                    opacity: CONFIG.DEFAULT_FOREST_OPACITY,
-                    attribution: "GEE Forest Cover"
-                });
+        // Try to get a preview tile (may be null)
+        const tileUrl = await loadGEEClippedLayer(feature.geometry);
+        let previewLayer = null;
+        if (tileUrl) {
+            previewLayer = L.tileLayer(tileUrl, {
+                opacity: CONFIG.DEFAULT_FOREST_OPACITY,
+                attribution: "GEE Forest Cover"
+            }).addTo(map);
+        }
+
+        // 3) Poll backend (via DataManager) until export completes or fails
+        const MAX_ATTEMPTS = 120; // e.g., 10 minutes @ 5s
+        const INTERVAL_MS = 5000;
+        let attempts = 0;
+        let finalStatus = null;
+
+        while (attempts < MAX_ATTEMPTS) {
+            attempts += 1;
+            // checkForestDataStatus updates DataManager state and returns 'COMPLETED' | 'PROCESSING' | 'FAILED'
+            const status = await checkForestDataStatus();
+            if (status === "COMPLETED") {
+                finalStatus = "COMPLETED";
+                break;
+            }
+            if (status === "FAILED") {
+                finalStatus = "FAILED";
+                break;
+            }
+            // still processing — wait then loop
+            await new Promise((res) => setTimeout(res, INTERVAL_MS));
+        }
+
+        // 4) Handle end of polling
+        if (finalStatus === "COMPLETED") {
+            // Get the served file URL from DataManager (preferred) or fallback to /exports/<countyKey>.tif
+            const fileUrl = getCurrentGEEForestFileUrl() || servedGeotiffUrl;
+
+            try {
+                const resp = await fetch(fileUrl);
+                if (!resp.ok) throw new Error(`Failed to fetch completed GeoTIFF: ${resp.status}`);
+                const arrayBuffer = await resp.arrayBuffer();
+                geoRaster = await parseGeoraster(arrayBuffer);
 
                 if (forestLayer) {
                     try { map.removeLayer(forestLayer); } catch {}
                 }
 
-                forestLayer = tileLayer.addTo(map);
-                console.log("[INFO] Loaded GEE forest layer (fallback).");
+                forestLayer = new GeoRasterLayer({
+                    georaster: geoRaster,
+                    pane: "forestPane",
+                    opacity: CONFIG.DEFAULT_FOREST_OPACITY,
+                    resolution: 128,
+                    pixelValuesToColorFn: (values) => {
+                        const v = values[0];
+                        return v === 1 ? "rgba(0,150,0,0.9)" : "rgba(0,0,0,0)";
+                    },
+                    mask: feature.geometry
+                }).addTo(map);
+
+                geotiffLoaded = true;
+                if (previewLayer) {
+                    try { map.removeLayer(previewLayer); } catch {}
+                }
 
                 hideLoader();
                 showToast("Forest layer map loaded successfully.");
                 return;
+            } catch (err) {
+                console.error("[ERROR] Failed to download/parse final GeoTIFF:", err);
+                if (previewLayer) {
+                    hideLoader();
+                    showToast("Preview available, but final GeoTIFF failed to load.", true);
+                    return;
+                } else {
+                    hideLoader();
+                    showToast("Failed to load forest layer.", true);
+                    return;
+                }
+            }
+        } else if (finalStatus === "FAILED") {
+            if (previewLayer) {
+                hideLoader();
+                showToast("Export failed, showing preview (if available).", true);
+                return;
             } else {
                 hideLoader();
-                showToast("Failed to load forest layer.", true);
+                showToast("Failed to generate forest GeoTIFF.", true);
+                return;
+            }
+        } else {
+            // timeout
+            if (previewLayer) {
+                hideLoader();
+                showToast("Export is taking longer than expected; preview is shown.", false);
+                return;
+            } else {
+                hideLoader();
+                showToast("Timed out waiting for forest data.", true);
                 return;
             }
         }
@@ -132,7 +202,6 @@ async function handleCountySelectionForGEE(feature) {
         showToast("Error loading forest layer.", true);
     }
 }
-
 
 function getForestLayer() {
     return forestLayer;
@@ -145,8 +214,8 @@ function getGeoRaster() {
 function resetForest() {
     const map = MapCore.getMap();
     if (map && forestLayer) {
-        try { 
-            map.removeLayer(forestLayer); 
+        try {
+            map.removeLayer(forestLayer);
         } catch (err) {
             console.warn("Failed to remove forest layer:", err);
         }
@@ -156,7 +225,6 @@ function resetForest() {
     geoRaster = null;
     geotiffLoaded = false;
 }
-
 
 export default {
     handleCountySelectionForGEE,

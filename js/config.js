@@ -9,7 +9,7 @@
 const CONFIG = {
     // ------------------ API ------------------ //
     API_BASE_URL: 'http://127.0.0.1:5000/api', // Flask backend root
-    // GEE_LAYER_ENDPOINT: '/get_layer',
+    GEE_BASE_URL: 'http://127.0.0.1:5000/earthengine', // GEE backend root
     // WILDFIRE_SIM_ENDPOINT: '/simulate',
 
     // ------------------ MAP ------------------ //

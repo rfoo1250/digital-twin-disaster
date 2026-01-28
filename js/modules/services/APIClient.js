@@ -54,7 +54,7 @@ async function runWildfireSimulation(countyKey, igniPointLat, igniPointLon) {
  * @returns {Promise<string|null>} - Tile URL string
  */
 async function getGEEClippedLayer(geometry) {
-    const GEELayerEndpoint = `${CONFIG.API_BASE_URL}/get_layer`;
+    const GEELayerEndpoint = `${CONFIG.GEE_BASE_URL}/get_layer`;
     try {
         const response = await fetch(GEELayerEndpoint, {
             method: 'POST',
@@ -65,6 +65,7 @@ async function getGEEClippedLayer(geometry) {
         if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
 
         const data = await response.json();
+        // backend returns { url: "...tile url..." }
         if (data.url) {
             console.log('[INFO] GEE tile URL retrieved:', data.url);
             return data.url;
@@ -86,22 +87,20 @@ async function getGEEClippedLayer(geometry) {
  * @param {string} stateAbbr - State abbreviation
  * @returns {Promise<Object|null>} - Task response object (e.g., {status, task_id, filename_key, local_path})
  */
+
 async function startForestExport(geometry, countyName, stateAbbr) {
-    const startExportEndpoint = `${CONFIG.API_BASE_URL}/start-export`;
+    const startExportEndpoint = `${CONFIG.GEE_BASE_URL}/start-export`;
     try {
         const response = await fetch(startExportEndpoint, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            // Send all info needed for caching
             body: JSON.stringify({ geometry, countyName, stateAbbr }),
         });
 
-        // A 200 (OK) means a cache hit.
-        // A 202 (Accepted) means the task is processing.
         if (!response.ok) {
             throw new Error(`HTTP error! Status: ${response.status}`);
         }
-        return await response.json();
+        return await response.json(); // pass through (status, task_id, filename_key, maybe url/local_path)
     } catch (error) {
         console.error('[API Error] Start Forest Export:', error);
         alert('Error starting forest data export. See console for details.');
@@ -114,9 +113,9 @@ async function startForestExport(geometry, countyName, stateAbbr) {
  * @param {string} taskId - The GEE-generated ID for the task (e.g., "P7NDW...")
  * @returns {Promise<Object|null>} - Status response object
  */
-async function checkExportStatus(taskId, countyKey) {
-    // We add the countyKey as a URL query parameter.
-    const checkStatusEndpoint = `${CONFIG.API_BASE_URL}/check-status/${taskId}?countyKey=${countyKey}`;
+async function checkExportStatus(taskId, filenameKey) {
+    // use filename_key query param to match backend
+    const checkStatusEndpoint = `${CONFIG.GEE_BASE_URL}/check-status/${taskId}?filename_key=${encodeURIComponent(filenameKey)}`;
     try {
         const response = await fetch(checkStatusEndpoint, {
             method: 'GET',
@@ -125,12 +124,13 @@ async function checkExportStatus(taskId, countyKey) {
         if (!response.ok) {
             throw new Error(`HTTP error! Status: ${response.status}`);
         }
-        return await response.json();
+        return await response.json(); // expected: { status: 'PROCESSING'|'COMPLETED'|'FAILED', local_path?, url? }
     } catch (error) {
         console.error('[API Error] Check Export Status:', error);
         return null;
     }
 }
+
 
 export {
     runWildfireSimulation,
