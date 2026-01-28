@@ -50,8 +50,8 @@ async function loadWildfireFrames(outputDir) {
                 pixelValuesToColorFn: function(values) {
                     const val = values[0];
                     switch (val) {
-                        case 2: return "rgba(255,165,0,0.9)"; // orange
-                        case 3: return "rgba(255,0,0,0.9)";   // red
+                        case 2: return "rgba(255,165,0,0.9)"; // orange - burning
+                        case 3: return "rgba(255,0,0,0.9)";   // red - burned
                         default: return "rgba(0,0,0,0)";
                     }
                 },
