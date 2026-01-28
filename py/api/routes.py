@@ -12,6 +12,7 @@ import os
 from config import (
     API_PREFIX, 
     BASE_DIR,
+    GEE_PREFIX,
     GEOTIFF_DIR,
     WILDFIRE_OUTPUT_BASE
 )
@@ -161,10 +162,12 @@ def serve_wildfire_output(subpath):
             "message": str(e)
         }), 500
 
-        
+
 # --- CENTRAL REGISTRATION FUNCTION ---
 def register_routes(app):
     """Registers all API blueprints with the Flask app."""
-    
+    from earthengine.routes import gee_bp
+    # this apparently avoids circular import issues
     # Register the main API blueprint
     app.register_blueprint(api_bp, url_prefix=API_PREFIX)
+    app.register_blueprint(gee_bp, url_prefix=GEE_PREFIX)

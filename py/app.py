@@ -14,10 +14,9 @@ import logging
 from api.routes import register_routes
 from api.errors import register_error_handlers
 from utils.logger import configure_logging
-from config import DEFAULT_HOST, DEFAULT_PORT, DEBUG_MODE
+from config import DEFAULT_HOST, DEFAULT_PORT, DEBUG_MODE, GEE_PROJECT_NAME, SERVICE_ACCOUNT_JSON_PATH
 
 from earthengine.service import initialize_gee
-from earthengine.routes import gee_bp
 
 
 def create_app():
@@ -25,8 +24,10 @@ def create_app():
     app = Flask(__name__)
 
     # Enable CORS for local frontend communication
-    CORS(app)
-
+    CORS(app, resources={
+        r"/earthengine/*": {"origins": "http://localhost:5656"},
+        r"/exports/*": {"origins": "http://localhost:5656"}
+    })
     # Configure structured logging
     configure_logging()
     logger = logging.getLogger(__name__)
@@ -35,10 +36,12 @@ def create_app():
     # Authenticate and initialize GEE on startup
     logger.info("Initializing Google Earth Engine...")
     try:
-        initialize_gee()
+        initialize_gee(project=GEE_PROJECT_NAME, service_account_json_path=SERVICE_ACCOUNT_JSON_PATH)
+        logger.info("Google Earth Engine initialized.")
     except Exception as e:
-        logger.error(f"GEE initialization failed: {e}")
-
+        logger.exception("GEE initialization failed.")
+        raise e
+    
     # Register route blueprints and error handlers
     logger.info("Registering API routes...")
     register_routes(app)

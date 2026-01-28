@@ -4,21 +4,25 @@ earthengine/routes.py
 API routes for GEE-related operations.
 """
 
-from flask import Blueprint, request, jsonify
-import logging
+from flask import Blueprint, request, jsonify, current_app
 import os
-import re # For sanitizing
+import logging
+import re
+
 from config import (
-    GEOJSON_DIR,
+    GCS_BUCKET_NAME,
     GCS_FOREST_EXPORTS_FOLDER,
-    GCS_BUCKET_NAME
+    GEE_PROJECT_NAME,
+    GEOTIFF_EXPORT_SCALE,
+    GEOTIFF_EXPORT_CRS,
+    GEOTIFF_DIR,
 )
-# Import ALL the service functions we need
+
 from earthengine.service import (
     get_clipped_layer_url,
-    export_forest_geometry_async,
+    export_forest_raster_async,
     get_task_status,
-    download_gcs_file_to_local
+    download_gcs_file_to_local,
 )
 
 logger = logging.getLogger(__name__)
@@ -56,111 +60,67 @@ def sanitize_filename(name):
     name = re.sub(r'[^a-zA-Z0-9_-]', '', name) # Remove special chars
     return name
 
+
 @gee_bp.route('/start-export', methods=['POST'])
-def start_export_task():
-    """
-    STEP 1: Starts an async GEE export task *or* returns a cached file.
-    Uses countyName and stateAbbr as the cache key / task_id.
-    """
-    logger.info("API Call: /start-export")
+def start_export():
+    data = request.get_json()
+    geometry = data.get('geometry')
+    countyName = data.get('countyName')
+    stateAbbr = data.get('stateAbbr')
+    if not (geometry and countyName and stateAbbr):
+        return jsonify(status='ERROR', error='Missing required params'), 400
+
+    # sanitize function: implement or reuse your sanitizer
+    def sanitize(s):
+        return "".join(c if c.isalnum() or c in ('-', '_') else '_' for c in s).strip('_').lower()
+
+    filename_key = f"{sanitize(countyName)}_{sanitize(stateAbbr)}"
+    local_tif_path = os.path.join(GEOTIFF_DIR, f"{filename_key}.tif")
+
+    # If file already exists locally, return immediately
+    if os.path.exists(local_tif_path):
+        return jsonify(status='COMPLETED', local_path=local_tif_path, filename_key=filename_key)
+
+    # Start raster export via Earth Engine -> GCS
     try:
-        data = request.json
-        geometry = data.get('geometry')
-        county_name = data.get('countyName')
-        state_abbr = data.get('stateAbbr')
-
-        if not all([geometry, county_name, state_abbr]):
-            return jsonify({"error": "Missing 'geometry', 'countyName', or 'stateAbbr'"}), 400
-        
-        # Create the unique, predictable key
-        filename_key = f"{sanitize_filename(county_name)}_{sanitize_filename(state_abbr)}"
-        local_path = f"{GEOJSON_DIR}/{filename_key}.geojson"
-
-        bucket_name = GCS_BUCKET_NAME
-        if not bucket_name:
-            logger.error("FATAL: GCS_BUCKET_NAME environment variable is not set.")
-            return jsonify({"error": "Server configuration error"}), 500
-
-        # --- CACHE CHECK ---
-        if os.path.exists(local_path):
-            logger.info(f"CACHE HIT: File {local_path} already exists.")
-            return jsonify({
-                'status': 'COMPLETED',
-                'local_path': local_path,
-                'filename_key': filename_key
-            }), 200 # 200 OK (immediate success)
-        
-        logger.info(f"CACHE MISS: Starting new export task for {filename_key}")
-        
-        # Call the service, which will return the GEE-generated task_id
-        task_info = export_forest_geometry_async(geometry, bucket_name, filename_key)
-        
-        # task_info is {'task_id': 'P7NDW...'}
-        
-        logger.info(f"API Call: /start-export success. Task {task_info['task_id']} started for {filename_key}.")
-        # Return BOTH the task_id (for polling) and the key (for state)
-        return jsonify({
-            'status': 'PROCESSING',
-            'task_id': task_info['task_id'],
-            'filename_key': filename_key
-        }), 202 # 202 Accepted (newly started)
-    
+        task_id = export_forest_raster_async(geometry, GCS_BUCKET_NAME, filename_key,
+                                             scale=GEOTIFF_EXPORT_SCALE, crs=GEOTIFF_EXPORT_CRS)
     except Exception as e:
-        logger.error(f"API Error: /start-export failed: {e}")
-        return jsonify({ 'error': f'Failed to start export task: {e}' }), 500
+        current_app.logger.exception("Failed to start raster export")
+        return jsonify(status='ERROR', error=str(e)), 500
 
+    return jsonify(status='PROCESSING', task_id=task_id, filename_key=filename_key)
 
-@gee_bp.route('/check-status/<string:task_id>', methods=['GET'])
+@gee_bp.route('/check-status/<task_id>', methods=['GET'])
 def check_export_status(task_id):
-    """
-    STEP 2: Checks the status of a GEE export task using its GEE-generated ID.
-    """
-    logger.info(f"API Call: /check-status/{task_id}")
-    if not task_id:
-        return jsonify({"error": "task_id is required"}), 400
-    
+    filename_key = request.args.get('filename_key')
+    if not filename_key:
+        return jsonify(status='ERROR', error='missing filename_key param'), 400
+
+    # get_task_status should map EE states to 'PROCESSING'/'DONE'/'FAILED'
     try:
-        county_key = request.args.get('countyKey')
-        if not county_key:
-            return jsonify({'error': 'Missing required query parameter: countyKey'}), 400
-
-        status_result = get_task_status(task_id) # Use GEE-generated task_id
-        task_status = status_result.get('status')
-        
-        if task_status == 'PROCESSING':
-            logger.info(f"Task {task_id} is still PROCESSING.")
-            return jsonify({'status': 'PROCESSING'}), 200
-        
-        elif task_status == 'DONE':
-            if not county_key:
-                logger.error("Missing 'countyKey' parameter in request.")
-                return jsonify({'status': 'FAILED', 'error': 'Missing countyKey parameter'}), 400
-
-            gcs_uri = f"gs://{GCS_BUCKET_NAME}/{GCS_FOREST_EXPORTS_FOLDER}/{county_key}.geojson"
-            logger.info(f"GCS URI for task {task_id}: {gcs_uri}")
-
-            local_path = f"{GEOJSON_DIR}/{county_key}.geojson"
-            logger.info(f"Task {task_id} is DONE. Downloading {gcs_uri} to {local_path}...")
-
-            try:
-                download_gcs_file_to_local(gcs_uri, local_path)
-                logger.info(f"Task {task_id} successfully downloaded.")
-                return jsonify({
-                    'status': 'COMPLETED',
-                    'local_path': local_path
-                }), 200
-            except Exception as e:
-                logger.error(f"Task {task_id} COMPLETED but local download FAILED: {e}")
-                return jsonify({'status': 'FAILED', 'error': f'File download from GCS failed: {e}'}), 500
-
-        elif task_status == 'FAILED':
-            logger.warning(f"Task {task_id} FAILED on GEE: {status_result.get('error')}")
-            return jsonify(status_result), 200
-        
-        else:
-            logger.warning(f"Task {task_id} has unhandled status: {task_status}")
-            return jsonify(status_result), 200
-
+        status_info = get_task_status(task_id)
     except Exception as e:
-        logger.error(f"API Error: /check-status/{task_id} failed: {e}")
-        return jsonify({ 'error': f'Failed to check task status: {e}' }), 500
+        current_app.logger.exception("Failed to get task status")
+        return jsonify(status='ERROR', error=str(e)), 500
+
+    status = status_info.get('status')
+    if status == 'PROCESSING':
+        return jsonify(status='PROCESSING')
+
+    if status == 'FAILED':
+        return jsonify(status='FAILED', error=status_info.get('error')), 500
+
+    # status == 'DONE' (or equivalent)
+    blob_prefix = f"{GCS_FOREST_EXPORTS_FOLDER.rstrip('/')}/{filename_key}"
+    local_path = os.path.join(GEOTIFF_DIR, f"{filename_key}.tif")
+    try:
+        downloaded_path = download_gcs_file_to_local(GCS_BUCKET_NAME, blob_prefix, local_path, project=GEE_PROJECT_NAME)
+        return jsonify(status='COMPLETED', local_path=downloaded_path)
+    except FileNotFoundError:
+        # GCS object not yet available — let the frontend poll again
+        current_app.logger.info("Export task DONE but GCS object not yet found. Will let frontend poll again.")
+        return jsonify(status='PROCESSING'), 202
+    except Exception as e:
+        current_app.logger.exception("Error downloading exported file from GCS")
+        return jsonify(status='ERROR', error=str(e)), 500

@@ -6,37 +6,161 @@ initialization, and data processing.
 """
 
 import ee
+import json
 import logging
-# import uuid
 import os
-from google.cloud import storage
-# from datetime import datetime, timedelta
+import gzip
+import shutil
+import zipfile
 
-from config import GCS_FOREST_EXPORTS_FOLDER
+from google.cloud import storage
+
+from config import (
+    GEE_PROJECT_NAME,
+    GCS_FOREST_EXPORTS_FOLDER,
+    SERVICE_ACCOUNT_JSON_PATH,
+)
+from utils.constants import STATE_ABBR_TO_FIPS
 
 logger = logging.getLogger(__name__)
 
 # --- GEE Initialization ---
+def initialize_gee(project=GEE_PROJECT_NAME, service_account_json_path=SERVICE_ACCOUNT_JSON_PATH):
+    """
+    Initialize Earth Engine using:
+    1) Explicit SERVICE_ACCOUNT_JSON_PATH (config.py), or
+    2) GOOGLE_APPLICATION_CREDENTIALS already set in environment.
 
-def initialize_gee():
+    Raises a clear error if neither is available.
     """
-    Authenticates (if needed) and initializes the GEE API.
-    This should be called once on application startup.
-    """
+
+    # Case 1: Explicit path provided via config.py
+    if service_account_json_path:
+        if not os.path.exists(service_account_json_path):
+            raise RuntimeError(
+                f"SERVICE_ACCOUNT_JSON_PATH does not exist: {service_account_json_path}"
+            )
+
+        # Override / set ADC explicitly
+        os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = service_account_json_path
+        logger.info(
+            "Initializing Earth Engine using SERVICE_ACCOUNT_JSON_PATH:"
+        )
+
+    # Case 2: Rely on environment (user already set GOOGLE_APPLICATION_CREDENTIALS)
+    elif os.environ.get('GOOGLE_APPLICATION_CREDENTIALS'):
+        logger.info(
+            "Initializing Earth Engine using GOOGLE_APPLICATION_CREDENTIALS from environment: %s",
+            os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')
+        )
+
+    # Case 3: Nothing provided → fail early
+    else:
+        raise RuntimeError(
+            "Earth Engine credentials not found. "
+            "Set GOOGLE_APPLICATION_CREDENTIALS or define SERVICE_ACCOUNT_JSON_PATH in config.py."
+        )
+
+    # Initialize Earth Engine (ADC is now guaranteed)
     try:
-        ee.Authenticate() 
-        
-        # Use the project ID from your original file
-        PROJECT_ID = 'dmml-volunteering'
-        
-        ee.Initialize(project=PROJECT_ID)
-        logger.info(f"GEE Initialized successfully for project: {PROJECT_ID}")
-        
+        ee.Initialize(project=project)
+        logger.info("Earth Engine initialized successfully (project=%s).", project)
     except Exception as e:
-        logger.error(f"FATAL: Could not initialize GEE: {e}")
-        raise e 
+        logger.exception("Earth Engine initialization failed.")
+        raise
 
-# --- GEE TILE LAYER (Visualization) ---
+# Helper for region aoi definition using TIGER dataCollection
+
+def region_from_tiger(county_name: str, state_fips_or_abbr: str):
+    if not county_name or not state_fips_or_abbr:
+        raise ValueError("county_name and state_fips_or_abbr are required")
+
+    st = str(state_fips_or_abbr).strip()
+    if len(st) == 2 and st.isalpha():
+        st = STATE_ABBR_TO_FIPS.get(st.upper(), st)
+    st = str(st).zfill(2)
+
+    counties = ee.FeatureCollection('TIGER/2018/Counties')
+    fc = counties.filter(ee.Filter.And(
+        ee.Filter.eq('STATEFP', st),
+        ee.Filter.eq('NAME', county_name)
+    ))
+
+
+    feat = fc.first()
+    if feat is None:
+        raise ValueError(f"County not found: {county_name} ({state_fips_or_abbr})")
+
+    geom = fc.geometry().bounds()
+
+    try:
+        geom_info = geom.getInfo()
+    except Exception as e:
+        raise RuntimeError("Failed to materialize county geometry") from e
+
+    if "coordinates" not in geom_info:
+        raise RuntimeError("Unexpected geometry format from TIGER")
+
+    return geom_info["coordinates"]
+
+# These should be defined in config
+# GCS_BUCKET_NAME = os.environ.get('GCS_BUCKET_NAME')
+# GCS_FOREST_EXPORTS_FOLDER = 'exports/forest'   # example
+# EXPORT_SCALE = 30
+# EXPORT_CRS = 'EPSG:3857'
+
+
+def export_forest_raster_async(geometry_geojson=None, bucket_name=None, filename_key=None,
+                               scale=30, crs=None, max_pixels=1e13, file_format='GeoTIFF',
+                               county_name: str = None, state_fips_or_abbr: str = None):
+    if bucket_name is None or filename_key is None:
+        raise ValueError("bucket_name and filename_key are required")
+
+    if county_name and state_fips_or_abbr:
+        region = region_from_tiger(county_name, state_fips_or_abbr)
+        geom_obj = ee.Geometry(region)
+    else:
+        if geometry_geojson is None:
+            raise ValueError("Either county_name+state_fips_or_abbr or geometry_geojson must be provided")
+        if isinstance(geometry_geojson, str):
+            geom_obj = ee.Geometry(json.loads(geometry_geojson))
+        else:
+            geom_obj = ee.Geometry(geometry_geojson)
+        try:
+            region = geom_obj.getInfo()
+        except Exception:
+            # try bounds as a safer fallback
+            try:
+                region = geom_obj.bounds().getInfo()
+            except Exception as e:
+                raise RuntimeError("Failed to serialize AOI for export; provide a simpler geometry or use county_name/state") from e
+
+    dw_image = (
+        ee.ImageCollection('GOOGLE/DYNAMICWORLD/V1')
+        .filter(ee.Filter.date('2024-01-01', '2024-12-31'))
+        .filterBounds(geom_obj)
+        .median()
+    )
+
+    trees_prob = dw_image.select('trees').clip(geom_obj)
+
+    file_prefix = f"{GCS_FOREST_EXPORTS_FOLDER.rstrip('/')}/{filename_key}"
+
+    task = ee.batch.Export.image.toCloudStorage(
+        image=trees_prob,
+        description=f"dynamicworld_trees_{filename_key}",
+        bucket=bucket_name,
+        fileNamePrefix=file_prefix,
+        region=region,
+        scale=scale,
+        crs=crs,
+        maxPixels=int(max_pixels),
+        fileFormat=file_format
+    )
+    task.start()
+    return task.id
+
+
 
 def get_clipped_layer_url(geometry):
     """
@@ -61,17 +185,16 @@ def get_clipped_layer_url(geometry):
         forestLayer = recentImage.updateMask(forestMask)
         clippedLayer = forestLayer.clip(ee_geometry)
 
-        # FIXME: still does not show green only pixels, gradient still there
+        # build a binary mask image for visualization
+        forestMaskVis = forestMask.selfMask()
         visParams = {
-          'bands': ['trees'],
-          'palette': ['green']
+            'min': 0, 'max': 1, 'palette': ['000000','00ff00']
         }
-
         map_id_object = ee.data.getMapId({
-            'image': clippedLayer,
-            'visParams': visParams
+            'image': forestMaskVis,
+            'visParams': visParams,
         })
-        
+
         logger.info(f"GEE getMapId() response object: {map_id_object}")
 
         if 'mapid' in map_id_object:
@@ -88,7 +211,111 @@ def get_clipped_layer_url(geometry):
         logger.error(f"Error during GEE processing in get_clipped_layer_url: {e}")
         raise
 
-# --- ASYNC EXPORT (To GCS) ---
+# --- TASK STATUS & DOWNLOAD ---
+
+def get_task_status(task_id):
+    """
+    Checks the status of a running GEE task.
+    Returns the GCS path when complete.
+    """
+    if not task_id:
+        raise ValueError("No task_id provided to check status.")
+    
+    try:
+        # ee.data.getTaskStatus returns a list of tasks.
+        # We need to get the first (and only) item from that list.
+        status_list = ee.data.getTaskStatus(task_id)
+        
+        if not status_list:
+            logger.error(f"No task found with ID {task_id}")
+            return {'status': 'FAILED', 'error': 'Task ID not found.'}
+
+        status = status_list[0]
+        task_state = status.get('state')
+        
+        if task_state == 'RUNNING' or task_state == 'READY':
+            logger.info(f"Task {task_id} is still {task_state}.")
+            return { 'status': 'PROCESSING', 'task_id': task_id }
+        
+        elif task_state == 'COMPLETED':
+            gcs_uri = status.get('destination_uris', [None])[0]
+            if not gcs_uri:
+                logger.error(f"Task {task_id} COMPLETED but no destination_uris found.")
+                return {'status': 'FAILED', 'error': 'Completed but no file path found.'}
+            logger.info(f"Task {task_id} is COMPLETED. File at: {gcs_uri}")
+            return { 'status': 'DONE', 'task_id': task_id, 'gcs_uri': gcs_uri }
+
+        elif task_state == 'FAILED':
+            error_msg = status.get('error_message', 'Unknown error')
+            logger.error(f"Task {task_id} FAILED: {error_msg}")
+            return { 'status': 'FAILED', 'task_id': task_id, 'error': error_msg }
+        
+        else:
+            logger.warning(f"Task {task_id} has unhandled state: {task_state}")
+            return {'status': task_state}
+
+    except Exception as e:
+        logger.error(f"Error checking status for task {task_id}: {e}")
+        raise
+
+
+def download_gcs_file_to_local(bucket_name, blob_prefix, local_path, project=None):
+    """
+    List blobs in bucket_name matching blob_prefix and download an appropriate GeoTIFF.
+    - blob_prefix: prefix used when exporting (e.g., 'exports/forest/county_key')
+    - local_path: final path on local disk (e.g., /data/tifs/county_key.tif)
+    Returns: path to the downloaded local file.
+    Raises FileNotFoundError if nothing found.
+    """
+    storage_client = storage.Client(project=project)
+    blobs = list(storage_client.list_blobs(bucket_name, prefix=blob_prefix))
+
+    if not blobs:
+        raise FileNotFoundError(f"No GCS objects found for prefix: {blob_prefix}")
+
+    # Prefer common TIFF-like objects
+    preferred = []
+    for b in blobs:
+        name = b.name.lower()
+        if name.endswith('.tif') or name.endswith('.tif.gz') or name.endswith('.tif.zip') or name.endswith('.zip'):
+            preferred.append(b)
+
+    if preferred:
+        selected = preferred[0]
+    else:
+        # fallback to first blob if no preferred extension
+        selected = blobs[0]
+
+    tmp_download = local_path + '.download'
+    os.makedirs(os.path.dirname(tmp_download), exist_ok=True)
+    selected.download_to_filename(tmp_download)
+
+    # If gzipped, ungzip
+    if selected.name.lower().endswith('.gz'):
+        with gzip.open(tmp_download, 'rb') as f_in:
+            with open(local_path, 'wb') as f_out:
+                shutil.copyfileobj(f_in, f_out)
+        os.remove(tmp_download)
+        return local_path
+
+    # If zip: extract first .tif inside
+    if selected.name.lower().endswith('.zip'):
+        with zipfile.ZipFile(tmp_download, 'r') as z:
+            tif_names = [n for n in z.namelist() if n.lower().endswith('.tif')]
+            if not tif_names:
+                os.remove(tmp_download)
+                raise FileNotFoundError("Zip did not contain any .tif files")
+            # extract first tif to local_path
+            with z.open(tif_names[0]) as zf, open(local_path, 'wb') as out_f:
+                shutil.copyfileobj(zf, out_f)
+        os.remove(tmp_download)
+        return local_path
+
+    # Otherwise move tmp to final
+    os.replace(tmp_download, local_path)
+    return local_path
+
+# --- LEGACY ---
 
 def export_forest_geometry_async(geometry, bucket_name, filename_key):
     """
@@ -142,8 +369,6 @@ def export_forest_geometry_async(geometry, bucket_name, filename_key):
         logger.error(f"Error starting GEE export task: {e}")
         raise
 
-# --- ASYNC EXPORT (To Google Drive - Alternative) ---
-
 def export_forest_geometry_to_drive(geometry, file_name="forest_geometry"):
     """
     Starts an asynchronous GEE task to export forest geometry
@@ -186,83 +411,4 @@ def export_forest_geometry_to_drive(geometry, file_name="forest_geometry"):
 
     except Exception as e:
         logger.error(f"Error starting GEE export-to-Drive task: {e}")
-        raise
-
-# --- TASK STATUS & DOWNLOAD ---
-
-def get_task_status(task_id):
-    """
-    Checks the status of a running GEE task.
-    Returns the GCS path when complete.
-    """
-    if not task_id:
-        raise ValueError("No task_id provided to check status.")
-    
-    try:
-        # ee.data.getTaskStatus returns a list of tasks.
-        # We need to get the first (and only) item from that list.
-        status_list = ee.data.getTaskStatus(task_id)
-        
-        if not status_list:
-            logger.error(f"No task found with ID {task_id}")
-            return {'status': 'FAILED', 'error': 'Task ID not found.'}
-
-        status = status_list[0]
-        task_state = status.get('state')
-        
-        if task_state == 'RUNNING' or task_state == 'READY':
-            logger.info(f"Task {task_id} is still {task_state}.")
-            return { 'status': 'PROCESSING', 'task_id': task_id }
-        
-        elif task_state == 'COMPLETED':
-            gcs_uri = status.get('destination_uris', [None])[0]
-            if not gcs_uri:
-                logger.error(f"Task {task_id} COMPLETED but no destination_uris found.")
-                return {'status': 'FAILED', 'error': 'Completed but no file path found.'}
-            logger.info(f"Task {task_id} is COMPLETED. File at: {gcs_uri}")
-            return { 'status': 'DONE', 'task_id': task_id, 'gcs_uri': gcs_uri }
-
-        elif task_state == 'FAILED':
-            error_msg = status.get('error_message', 'Unknown error')
-            logger.error(f"Task {task_id} FAILED: {error_msg}")
-            return { 'status': 'FAILED', 'task_id': task_id, 'error': error_msg }
-        
-        else:
-            logger.warning(f"Task {task_id} has unhandled state: {task_state}")
-            return {'status': task_state}
-
-    except Exception as e:
-        logger.error(f"Error checking status for task {task_id}: {e}")
-        raise
-
-def download_gcs_file_to_local(gs_uri, local_file_path):
-    """
-    Downloads a file from a GCS URI to a specified local path.
-    Assumes the server is authenticated to GCS.
-    """
-    if not gs_uri.startswith('gs://'):
-        raise ValueError("Invalid GCS URI, must start with 'gs://'")
-
-    try:
-        # Use the project ID from your original file
-        storage_client = storage.Client(project='dmml-volunteering')
-
-        parts = gs_uri.replace('gs://', '').split('/', 1)
-        bucket_name = parts[0]
-        blob_name = parts[1]
-
-        bucket = storage_client.bucket(bucket_name)
-        blob = bucket.blob(blob_name)
-
-        local_dir = os.path.dirname(local_file_path)
-        if local_dir:
-            os.makedirs(local_dir, exist_ok=True)
-
-        blob.download_to_filename(local_file_path)
-        
-        logger.info(f"Successfully downloaded {gs_uri} to {local_file_path}")
-        return local_file_path
-
-    except Exception as e:
-        logger.error(f"Failed to download {gs_uri} to {local_file_path}: {e}")
         raise
